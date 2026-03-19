@@ -15,13 +15,16 @@ class AVDownloadInfo:
     m3u8: str = ""
     title: str = ""
     avid: str = ""
+    fallback_urls: list = field(default_factory=list)  # 备用下载URL列表，主URL失败时依次尝试
 
     def __str__(self):
+        fallback_info = f"\n备用源: {len(self.fallback_urls)}个" if self.fallback_urls else ""
         return (
             f"=== 元数据详情 ===\n"
             f"番号: {self.avid or '未知'}\n"
             f"标题: {self.title or '未知'}\n"
             f"M3U8: {self.m3u8 or '无'}"
+            f"{fallback_info}"
         )
 
     def to_json(self, file_path: str, indent: int = 2) -> bool:

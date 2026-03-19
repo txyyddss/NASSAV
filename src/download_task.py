@@ -113,7 +113,21 @@ class DownloadTask:
                     # 下载视频
                     if not downloader.downloadM3u8(info.m3u8, avid):
                         logger.error(f"{info.m3u8} 通过 {downloader_name} 下载视频失败")
-                        continue
+                        # 尝试备用URL
+                        fallback_success = False
+                        if info.fallback_urls:
+                            for i, fallback_url in enumerate(info.fallback_urls):
+                                self._report(avid, "downloading",
+                                    f"主源失败，{downloader_name} 尝试备用源 {i+1}/{len(info.fallback_urls)}...")
+                                logger.info(f"Trying fallback URL {i+1}/{len(info.fallback_urls)}: {fallback_url}")
+                                if downloader.downloadM3u8(fallback_url, avid):
+                                    fallback_success = True
+                                    logger.info(f"Fallback URL {i+1} succeeded: {fallback_url}")
+                                    break
+                                else:
+                                    logger.warning(f"Fallback URL {i+1} failed: {fallback_url}")
+                        if not fallback_success:
+                            continue
 
                     self._report(avid, "completed", f"通过 {downloader_name} 下载成功")
                     return {"success": True, "source": downloader_name, "error": ""}
