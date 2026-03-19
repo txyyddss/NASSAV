@@ -7,7 +7,6 @@ from dataclasses import dataclass, asdict, field
 from typing import Optional, Tuple
 from pathlib import Path
 from ..comm import *
-import requests as std_requests
 from curl_cffi import requests
 
 # 下载信息，只保留最基础的信息。只需要填写avid，其他字段用于调试，选填
@@ -196,7 +195,7 @@ class Downloader(ABC):
             payload["headers"] = {"Referer": referer}
         logger.info(f"Flaresolverr fallback: POST {fs_url} for {url}")
         try:
-            resp = std_requests.post(
+            resp = requests.post(
                 fs_url,
                 json=payload,
                 timeout=fs_timeout + 10,
