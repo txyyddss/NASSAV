@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="TX媒体库AV求片 - 提交番号进行自动下载">
     <title>TX媒体库AV求片</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {% if turnstile_site_key %}
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     {% endif %}
 </head>
+
 <body>
     <div class="container">
         <!-- 标题 -->
@@ -23,19 +28,13 @@
             <h2>📥 提交下载</h2>
             <form id="submitForm" class="submit-form">
                 <div class="input-group">
-                    <input
-                        type="text"
-                        id="avidInput"
-                        name="avid"
-                        placeholder="输入番号 (如 SONE-217 或 FC2-PPV-123456)"
-                        autocomplete="off"
-                        maxlength="30"
-                        required
-                    >
+                    <input type="text" id="avidInput" name="avid" placeholder="输入番号 (如 SONE-217 或 FC2-PPV-123456)"
+                        autocomplete="off" maxlength="30" required>
                     <button type="submit" id="submitBtn">提交</button>
                 </div>
                 {% if turnstile_site_key %}
-                <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-callback="onTurnstileSuccess" data-theme="dark"></div>
+                <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-callback="onTurnstileSuccess"
+                    data-theme="dark"></div>
                 {% endif %}
                 <div id="message" class="message" style="display:none;"></div>
             </form>
@@ -61,14 +60,34 @@
         <section class="card">
             <h2>📋 历史记录</h2>
             <div class="history-filters" id="historyFilters">
-                <select id="filterStatus" class="filter-select" title="按状态筛选">
-                    <option value="">全部状态</option>
-                    <option value="completed">✅ 已完成</option>
-                    <option value="failed">❌ 失败</option>
-                </select>
-                <select id="filterSource" class="filter-select" title="按下载方式筛选">
-                    <option value="">全部方式</option>
-                </select>
+                <!-- 状态筛选 - 自定义下拉框 -->
+                <div class="custom-select" id="filterStatusSelect" data-value="">
+                    <div class="custom-select-trigger" tabindex="0">
+                        <span class="custom-select-label">全部状态</span>
+                        <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <path d="M6 9l6 6 6-6" />
+                            </svg></span>
+                    </div>
+                    <div class="custom-select-options">
+                        <div class="custom-select-option selected" data-value="">全部状态</div>
+                        <div class="custom-select-option" data-value="completed">✅ 已完成</div>
+                        <div class="custom-select-option" data-value="failed">❌ 失败</div>
+                    </div>
+                </div>
+                <!-- 来源筛选 - 自定义下拉框 -->
+                <div class="custom-select" id="filterSourceSelect" data-value="">
+                    <div class="custom-select-trigger" tabindex="0">
+                        <span class="custom-select-label">全部方式</span>
+                        <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <path d="M6 9l6 6 6-6" />
+                            </svg></span>
+                    </div>
+                    <div class="custom-select-options">
+                        <div class="custom-select-option selected" data-value="">全部方式</div>
+                    </div>
+                </div>
             </div>
             <div id="historyList" class="task-list">
                 <div class="empty-state">暂无历史记录</div>
@@ -77,6 +96,26 @@
                 <button id="prevPage" class="page-btn" title="上一页">‹</button>
                 <span id="pageInfo" class="page-info"></span>
                 <button id="nextPage" class="page-btn" title="下一页">›</button>
+                <div class="per-page-group">
+                    <span>每页</span>
+                    <div class="custom-select" id="perPageSelect" data-value="5">
+                        <div class="custom-select-trigger" tabindex="0">
+                            <span class="custom-select-label">5</span>
+                            <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <path d="M6 9l6 6 6-6" />
+                                </svg></span>
+                        </div>
+                        <div class="custom-select-options">
+                            <div class="custom-select-option selected" data-value="5">5</div>
+                            <div class="custom-select-option" data-value="10">10</div>
+                            <div class="custom-select-option" data-value="20">20</div>
+                            <div class="custom-select-option" data-value="50">50</div>
+                            <div class="custom-select-option" data-value="100">100</div>
+                        </div>
+                    </div>
+                    <span>条</span>
+                </div>
             </div>
         </section>
     </div>
@@ -87,9 +126,133 @@
         // ==================== 历史分页状态 ====================
         let historyPage = 1;
         let historyTotalPages = 1;
+        let historyPerPage = 5;
         let historyFilterStatus = '';
         let historyFilterSource = '';
         let knownSources = [];   // 缓存已知的source列表
+
+        // ==================== 自定义下拉框组件 ====================
+        class CustomSelect {
+            constructor(el, onChange) {
+                this.el = el;
+                this.trigger = el.querySelector('.custom-select-trigger');
+                this.label = el.querySelector('.custom-select-label');
+                this.optionsContainer = el.querySelector('.custom-select-options');
+                this.onChange = onChange;
+                this._value = el.dataset.value || '';
+
+                this.trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggle();
+                });
+
+                this.trigger.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.toggle();
+                    }
+                });
+
+                this.optionsContainer.addEventListener('click', (e) => {
+                    const option = e.target.closest('.custom-select-option');
+                    if (option) {
+                        this.select(option.dataset.value, option.textContent);
+                    }
+                });
+            }
+
+            toggle() {
+                // 关闭其他所有打开的下拉框
+                document.querySelectorAll('.custom-select.open').forEach(s => {
+                    if (s !== this.el) s.classList.remove('open');
+                });
+                this.el.classList.toggle('open');
+            }
+
+            close() {
+                this.el.classList.remove('open');
+            }
+
+            select(value, text) {
+                this._value = value;
+                this.el.dataset.value = value;
+                this.label.textContent = text;
+
+                // 更新选中状态
+                this.optionsContainer.querySelectorAll('.custom-select-option').forEach(opt => {
+                    opt.classList.toggle('selected', opt.dataset.value === value);
+                });
+
+                this.close();
+                if (this.onChange) this.onChange(value);
+            }
+
+            get value() {
+                return this._value;
+            }
+
+            // 动态设置选项列表
+            setOptions(options) {
+                // options: [{value, label}]
+                const currentValue = this._value;
+                this.optionsContainer.innerHTML = '';
+                options.forEach(opt => {
+                    const div = document.createElement('div');
+                    div.className = 'custom-select-option';
+                    div.dataset.value = opt.value;
+                    div.textContent = opt.label;
+                    if (opt.value === currentValue) {
+                        div.classList.add('selected');
+                    }
+                    this.optionsContainer.appendChild(div);
+                });
+
+                // 如果当前值不在新选项中，重置
+                const validValues = options.map(o => o.value);
+                if (!validValues.includes(currentValue)) {
+                    const first = options[0];
+                    if (first) this.select(first.value, first.label);
+                }
+            }
+        }
+
+        // 点击外部关闭所有下拉框
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.custom-select.open').forEach(s => s.classList.remove('open'));
+        });
+
+        // 阻止下拉框内部点击冒泡
+        document.querySelectorAll('.custom-select').forEach(s => {
+            s.addEventListener('click', e => e.stopPropagation());
+        });
+
+        // 初始化自定义下拉框
+        const filterStatusSelect = new CustomSelect(
+            document.getElementById('filterStatusSelect'),
+            (value) => {
+                historyFilterStatus = value;
+                historyPage = 1;
+                refreshHistory();
+            }
+        );
+
+        const filterSourceSelect = new CustomSelect(
+            document.getElementById('filterSourceSelect'),
+            (value) => {
+                historyFilterSource = value;
+                historyPage = 1;
+                refreshHistory();
+            }
+        );
+
+        const perPageSelect = new CustomSelect(
+            document.getElementById('perPageSelect'),
+            (value) => {
+                historyPerPage = parseInt(value, 10);
+                historyPage = 1;
+                refreshHistory();
+            }
+        );
 
         // Turnstile回调
         function onTurnstileSuccess(token) {
@@ -174,7 +337,7 @@
             if (!ts) return '';
             try {
                 const d = new Date(ts);
-                return d.toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+                return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
             } catch { return ts; }
         }
 
@@ -185,8 +348,15 @@
                 <div class="task-item">
                     <div class="task-main">
                         <span class="task-avid">${escapeHtml(item.avid)}</span>
-                        <span class="task-status ${st.class}">${st.label}</span>
-                    </div>`;
+                        <div class="task-main-actions">
+                            <span class="task-status ${st.class}">${st.label}</span>`;
+
+            // 失败项目显示重试按钮（仅历史记录中）
+            if (showSource && item.status === 'failed' && item.id) {
+                html += `<button class="retry-btn" onclick="retryItem(${item.id}, this)" title="重试">🔄 重试</button>`;
+            }
+
+            html += `</div></div>`;
 
             if (item.title) {
                 html += `<div class="task-title">${escapeHtml(item.title)}</div>`;
@@ -240,7 +410,7 @@
             try {
                 const params = new URLSearchParams({
                     page: historyPage,
-                    per_page: 20,
+                    per_page: historyPerPage,
                 });
                 if (historyFilterStatus) params.set('status', historyFilterStatus);
                 if (historyFilterSource) params.set('source', historyFilterSource);
@@ -283,7 +453,7 @@
             nextBtn.disabled = historyPage >= historyTotalPages;
         }
 
-        // 更新下载方式筛选下拉
+        // 更新下载方式筛选下拉（自定义下拉框）
         function updateSourceFilter(sources) {
             // 仅当sources列表变化时才重新渲染
             const newKey = sources.join(',');
@@ -291,37 +461,56 @@
             if (newKey === oldKey) return;
 
             knownSources = sources;
-            const select = document.getElementById('filterSource');
-            const currentValue = select.value;
-
-            // 保留第一个"全部方式"选项
-            select.innerHTML = '<option value="">全部方式</option>';
+            const options = [{ value: '', label: '全部方式' }];
             sources.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s;
-                opt.textContent = s;
-                select.appendChild(opt);
+                options.push({ value: s, label: s });
             });
-            // 恢复之前的选中值
-            if (currentValue && sources.includes(currentValue)) {
-                select.value = currentValue;
+            filterSourceSelect.setOptions(options);
+        }
+
+        // ==================== 重试失败项目 ====================
+        async function retryItem(itemId, btnEl) {
+            {% if turnstile_site_key %}
+            if (!turnstileToken) {
+                showMessage('请先完成人机验证后再重试', 'error');
+                return;
+            }
+            {% endif %}
+
+            btnEl.disabled = true;
+            btnEl.textContent = '重试中...';
+
+            try {
+                const resp = await fetch(`/api/retry/${itemId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        turnstile_token: turnstileToken
+                    })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    turnstileToken = '';
+                    if (typeof turnstile !== 'undefined') {
+                        turnstile.reset();
+                    }
+                    refreshHistory();
+                    refreshQueue();
+                } else {
+                    showMessage(data.message, 'error');
+                    btnEl.disabled = false;
+                    btnEl.textContent = '🔄 重试';
+                }
+            } catch (err) {
+                showMessage('网络错误，请重试', 'error');
+                btnEl.disabled = false;
+                btnEl.textContent = '🔄 重试';
             }
         }
 
         // ==================== 事件绑定 ====================
-
-        // 筛选变更
-        document.getElementById('filterStatus').addEventListener('change', (e) => {
-            historyFilterStatus = e.target.value;
-            historyPage = 1;
-            refreshHistory();
-        });
-
-        document.getElementById('filterSource').addEventListener('change', (e) => {
-            historyFilterSource = e.target.value;
-            historyPage = 1;
-            refreshHistory();
-        });
 
         // 翻页按钮
         document.getElementById('prevPage').addEventListener('click', () => {
@@ -344,4 +533,5 @@
         setInterval(refreshQueue, 3000);
     </script>
 </body>
+
 </html>

@@ -1,17 +1,22 @@
-/* TX媒体库AV求片 WebUI - 暗色主题响应式样式 */
+/* TX媒体库AV求片 WebUI - 暗色主题响应式样式 (Enhanced) */
+
+/* ==================== Google Fonts ==================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ==================== 基础变量 ==================== */
 :root {
-    --bg-primary: #0f0f13;
-    --bg-card: #1a1a24;
-    --bg-input: #252533;
-    --bg-hover: #2a2a3a;
+    --bg-primary: #0a0a10;
+    --bg-card: rgba(22, 22, 35, 0.75);
+    --bg-card-solid: #161623;
+    --bg-input: #1e1e30;
+    --bg-hover: #282840;
     --text-primary: #e8e8f0;
     --text-secondary: #9898b0;
-    --text-muted: #6868808a;
+    --text-muted: #5a5a72;
     --accent: #7c5cfc;
     --accent-hover: #9078ff;
     --accent-glow: rgba(124, 92, 252, 0.25);
+    --accent-glow-strong: rgba(124, 92, 252, 0.45);
     --success: #34d399;
     --success-bg: rgba(52, 211, 153, 0.1);
     --error: #f87171;
@@ -20,11 +25,14 @@
     --warning-bg: rgba(251, 191, 36, 0.1);
     --active: #60a5fa;
     --active-bg: rgba(96, 165, 250, 0.1);
-    --border: #2a2a3a;
-    --radius: 12px;
-    --radius-sm: 8px;
-    --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-    --transition: 0.2s ease;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-hover: rgba(124, 92, 252, 0.3);
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+    --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ==================== 重置 & 基础 ==================== */
@@ -43,6 +51,11 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    /* 微妙的径向渐变背景 */
+    background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 92, 252, 0.12), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(96, 165, 250, 0.06), transparent);
+    background-attachment: fixed;
 }
 
 /* ==================== 布局 ==================== */
@@ -55,43 +68,62 @@ body {
 /* ==================== 头部 ==================== */
 .header {
     text-align: center;
-    padding: 40px 0 24px;
+    padding: 48px 0 28px;
 }
 
 .header h1 {
-    font-size: 2.5rem;
+    font-size: 2.6rem;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--accent), #a78bfa, #c084fc);
+    background: linear-gradient(135deg, #7c5cfc, #a78bfa, #c084fc, #e879f9, #a78bfa, #7c5cfc);
+    background-size: 300% 300%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     letter-spacing: 3px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    animation: gradient-shift 6s ease infinite;
 }
 
 .subtitle {
     color: var(--text-secondary);
     font-size: 0.95rem;
     font-weight: 400;
+    letter-spacing: 1px;
+}
+
+@keyframes gradient-shift {
+
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
 }
 
 /* ==================== 卡片 ==================== */
 .card {
     background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 16px;
+    padding: 22px;
+    margin-bottom: 18px;
     box-shadow: var(--shadow);
-    transition: border-color var(--transition);
+    transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .card:hover {
-    border-color: rgba(124, 92, 252, 0.2);
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
 }
 
 .card h2 {
-    font-size: 1.05rem;
+    font-size: 1.08rem;
     font-weight: 600;
     margin-bottom: 16px;
     color: var(--text-primary);
@@ -99,7 +131,8 @@ body {
 
 /* ==================== 提交表单 ==================== */
 .submit-card {
-    border-color: rgba(124, 92, 252, 0.3);
+    border-color: rgba(124, 92, 252, 0.2);
+    background: linear-gradient(135deg, rgba(22, 22, 35, 0.85), rgba(30, 25, 50, 0.75));
 }
 
 .submit-form {
@@ -110,24 +143,25 @@ body {
 
 .input-group {
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
 .input-group input {
     flex: 1;
-    padding: 12px 16px;
+    padding: 13px 18px;
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     font-size: 0.95rem;
+    font-family: inherit;
     outline: none;
     transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .input-group input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px rgba(124, 92, 252, 0.1);
 }
 
 .input-group input::placeholder {
@@ -135,21 +169,42 @@ body {
 }
 
 .input-group button {
-    padding: 12px 28px;
-    background: var(--accent);
+    padding: 13px 30px;
+    background: linear-gradient(135deg, var(--accent), #9068ff);
     color: #fff;
     border: none;
     border-radius: var(--radius-sm);
     font-size: 0.95rem;
     font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
-    transition: background var(--transition), transform var(--transition);
+    transition: all var(--transition);
     white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.input-group button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(255, 255, 255, 0.15) 50%, transparent 60%);
+    background-size: 200% 100%;
+    background-position: 100% 0;
+    transition: background-position 0.5s ease;
+}
+
+.input-group button:hover:not(:disabled)::before {
+    background-position: -100% 0;
 }
 
 .input-group button:hover:not(:disabled) {
-    background: var(--accent-hover);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px var(--accent-glow-strong);
+}
+
+.input-group button:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .input-group button:disabled {
@@ -166,11 +221,11 @@ body {
 
 /* 消息 */
 .message {
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
     font-weight: 500;
-    animation: fadeIn 0.3s ease;
+    animation: slideDown 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .message-success {
@@ -185,6 +240,18 @@ body {
     border: 1px solid rgba(248, 113, 113, 0.2);
 }
 
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* ==================== 任务列表 ==================== */
 .task-list {
     display: flex;
@@ -195,7 +262,7 @@ body {
 .empty-state {
     text-align: center;
     color: var(--text-muted);
-    padding: 20px;
+    padding: 24px;
     font-size: 0.9rem;
 }
 
@@ -203,13 +270,15 @@ body {
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    transition: border-color var(--transition), background var(--transition);
+    padding: 14px 18px;
+    transition: border-color var(--transition), background var(--transition), transform var(--transition);
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .task-item:hover {
-    border-color: rgba(124, 92, 252, 0.2);
+    border-color: var(--border-hover);
     background: var(--bg-hover);
+    transform: translateX(3px);
 }
 
 .task-main {
@@ -230,7 +299,7 @@ body {
 .task-status {
     font-size: 0.78rem;
     font-weight: 600;
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: 20px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -291,44 +360,187 @@ body {
     text-align: right;
 }
 
-/* ==================== 历史筛选栏 ==================== */
-.history-filters {
+.task-main-actions {
     display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
-.filter-select {
+.retry-btn {
+    padding: 4px 12px;
+    background: transparent;
+    border: 1px solid rgba(248, 113, 113, 0.35);
+    border-radius: 20px;
+    color: var(--error);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.retry-btn:hover:not(:disabled) {
+    background: var(--error-bg);
+    border-color: var(--error);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(248, 113, 113, 0.2);
+}
+
+.retry-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.retry-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== 自定义下拉框 ==================== */
+.custom-select {
+    position: relative;
     flex: 1;
-    padding: 9px 14px;
+    min-width: 0;
+    user-select: none;
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     font-size: 0.88rem;
-    outline: none;
+    font-family: inherit;
     cursor: pointer;
-    transition: border-color var(--transition), box-shadow var(--transition);
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239898b0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 32px;
+    transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.filter-select:focus {
+.custom-select-trigger:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-hover);
+}
+
+.custom-select.open .custom-select-trigger {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-.filter-select:hover {
-    border-color: rgba(124, 92, 252, 0.3);
+.custom-select-trigger .arrow {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--transition);
+    color: var(--text-secondary);
 }
 
-.filter-select option {
-    background: var(--bg-card);
+.custom-select.open .custom-select-trigger .arrow {
+    transform: rotate(180deg);
+}
+
+.custom-select-trigger .arrow svg {
+    width: 12px;
+    height: 12px;
+}
+
+.custom-select-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--bg-card-solid);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    max-height: 220px;
+    overflow-y: auto;
+    opacity: 0;
+    transform: scaleY(0.9) translateY(-4px);
+    transform-origin: top center;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    pointer-events: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124, 92, 252, 0.3) transparent;
+}
+
+.custom-select-options::-webkit-scrollbar {
+    width: 5px;
+}
+
+.custom-select-options::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-select-options::-webkit-scrollbar-thumb {
+    background: rgba(124, 92, 252, 0.3);
+    border-radius: 10px;
+}
+
+.custom-select.open .custom-select-options {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+    pointer-events: auto;
+}
+
+.custom-select-option {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.custom-select-option:hover {
+    background: rgba(124, 92, 252, 0.12);
     color: var(--text-primary);
+}
+
+.custom-select-option.selected {
+    background: rgba(124, 92, 252, 0.18);
+    color: var(--accent-hover);
+    font-weight: 600;
+}
+
+.custom-select-option:first-child {
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.custom-select-option:last-child {
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+/* ==================== 历史筛选栏 ==================== */
+.history-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
 }
 
 /* ==================== 分页导航 ==================== */
@@ -340,11 +552,12 @@ body {
     margin-top: 16px;
     padding-top: 14px;
     border-top: 1px solid var(--border);
+    flex-wrap: wrap;
 }
 
 .page-btn {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -355,13 +568,14 @@ body {
     font-size: 1.2rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background var(--transition), border-color var(--transition), transform var(--transition);
+    transition: all var(--transition);
 }
 
 .page-btn:hover:not(:disabled) {
     background: var(--bg-hover);
     border-color: var(--accent);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px var(--accent-glow);
 }
 
 .page-btn:active:not(:disabled) {
@@ -369,7 +583,7 @@ body {
 }
 
 .page-btn:disabled {
-    opacity: 0.3;
+    opacity: 0.25;
     cursor: not-allowed;
 }
 
@@ -377,6 +591,37 @@ body {
     color: var(--text-secondary);
     font-size: 0.85rem;
     white-space: nowrap;
+}
+
+/* 每页条数选择器容器 */
+.per-page-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.per-page-group .custom-select {
+    flex: 0 0 auto;
+    width: 72px;
+}
+
+.per-page-group .custom-select .custom-select-trigger {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    justify-content: center;
+    gap: 4px;
+}
+
+.per-page-group .custom-select .custom-select-option {
+    padding: 7px 10px;
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.per-page-group .custom-select .custom-select-options {
+    min-width: 72px;
 }
 
 /* ==================== 动画 ==================== */
@@ -411,7 +656,7 @@ body {
     }
 
     .header {
-        padding: 24px 0 16px;
+        padding: 28px 0 18px;
     }
 
     .header h1 {

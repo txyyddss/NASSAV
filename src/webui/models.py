@@ -256,3 +256,34 @@ def get_distinct_sources() -> List[str]:
         return []
     finally:
         conn.close()
+
+
+def retry_failed_item(item_id: int) -> Dict[str, Any]:
+    """
+    重试失败的队列项：将状态重置为waiting，保留created_at不变（不改变位置）。
+    :return: {"success": bool, "message": str}
+    """
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT id, avid, status FROM download_queue WHERE id = ?", (item_id,)
+        ).fetchone()
+        if not row:
+            return {"success": False, "message": "未找到该记录"}
+
+        if row["status"] != "failed":
+            return {"success": False, "message": "只能重试失败的项目"}
+
+        conn.execute(
+            "UPDATE download_queue SET status = 'waiting', progress = '', "
+            "error_msg = '', source = '', title = '', updated_at = ? WHERE id = ?",
+            (datetime.now().isoformat(), item_id),
+        )
+        conn.commit()
+        logger.info(f"已重试失败项目: {row['avid']} (id={item_id})")
+        return {"success": True, "message": f"{row['avid']} 已重新加入队列"}
+    except sqlite3.Error as e:
+        logger.error(f"重试失败项目异常: {e}")
+        return {"success": False, "message": f"数据库错误: {e}"}
+    finally:
+        conn.close()

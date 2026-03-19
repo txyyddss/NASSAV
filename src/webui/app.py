@@ -6,7 +6,7 @@ from loguru import logger
 from ..comm import webui_config, save_path
 from .models import (
     init_queue_db, add_to_queue, is_duplicate, get_queue_status, get_item_status,
-    get_history_page, get_distinct_sources,
+    get_history_page, get_distinct_sources, retry_failed_item,
 )
 from curl_cffi import requests as cffi_requests
 
@@ -100,6 +100,24 @@ def create_app() -> Flask:
         # 附带可用的下载方式列表，供前端筛选下拉框使用
         result["sources"] = get_distinct_sources()
         return jsonify(result)
+
+    @app.route("/api/retry/<int:item_id>", methods=["POST"])
+    def retry(item_id):
+        """重试失败的下载项"""
+        data = request.get_json(silent=True)
+        turnstile_token = data.get("turnstile_token", "") if data else ""
+
+        # Turnstile验证
+        turnstile_secret = webui_config.get("TurnstileSecretKey", "")
+        if turnstile_secret:
+            if not turnstile_token:
+                return jsonify({"success": False, "message": "请完成人机验证"}), 400
+            if not _verify_turnstile(turnstile_token, turnstile_secret):
+                return jsonify({"success": False, "message": "人机验证失败，请重试"}), 403
+
+        result = retry_failed_item(item_id)
+        status_code = 200 if result["success"] else 400
+        return jsonify(result), status_code
 
     return app
 
