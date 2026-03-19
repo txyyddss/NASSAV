@@ -387,11 +387,11 @@
             if (!items || items.length === 0) {
                 // 已经是 empty-state 则不重复写
                 if (container.children.length === 1 && container.firstElementChild.classList.contains('empty-state')) return;
-                container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+                container.replaceChildren(Object.assign(document.createElement('div'), { className: 'empty-state', textContent: emptyText }));
                 return;
             }
 
-            // 建立当前 DOM 中各 key 对应的元素映射
+            // 建立当前 DOM 中各 key 对应的元素映射（跳过无 key 的遗留节点如 empty-state）
             const existing = new Map();
             Array.from(container.children).forEach(el => {
                 if (el.dataset.key) existing.set(el.dataset.key, el);
@@ -401,7 +401,7 @@
             const fragment = document.createDocumentFragment();
 
             items.forEach(item => {
-                const key = item.id ? String(item.id) : escapeHtml(item.avid);
+                const key = item.id ? String(item.id) : String(item.avid);
                 const fp = itemFingerprint(item, showSource);
                 newKeys.add(key);
 
@@ -410,21 +410,18 @@
                     // 新增项
                     el = buildItemEl(item, showSource);
                 } else if (el.dataset.fp !== fp) {
-                    // 内容有变化，原地更新
-                    const updated = buildItemEl(item, showSource);
+                    // 内容有变化，仅更新 innerHTML，不销毁节点
                     el.dataset.fp = fp;
-                    el.innerHTML = updated.innerHTML;
+                    el.innerHTML = buildItemEl(item, showSource).innerHTML;
                 }
                 fragment.appendChild(el);
             });
 
-            // 移除已不存在的项
-            existing.forEach((el, key) => {
-                if (!newKeys.has(key)) el.remove();
-            });
+            // 移除已不存在的项（含 empty-state 等无 key 节点）
+            existing.forEach((el, key) => { if (!newKeys.has(key)) el.remove(); });
 
-            // 如果顺序或内容有变化，一次性替换容器内容
-            container.appendChild(fragment);
+            // 原子替换容器中全部子节点，彻底清除 empty-state 等孤立节点
+            container.replaceChildren(fragment);
         }
 
         // ==================== 队列刷新（正在下载 + 等待） ====================
