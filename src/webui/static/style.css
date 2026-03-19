@@ -368,47 +368,38 @@ body {
     flex-shrink: 0;
 }
 
-.retry-btn {
+.retry-status-btn {
+    border: none;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 14px;
-    background: rgba(124, 92, 252, 0.08);
-    border: 1px solid rgba(124, 92, 252, 0.3);
-    border-radius: 20px;
-    color: var(--accent-hover);
-    font-size: 0.75rem;
-    font-weight: 600;
     font-family: inherit;
-    cursor: pointer;
     transition: all var(--transition-fast);
-    white-space: nowrap;
 }
 
-.retry-btn .retry-icon {
-    width: 12px;
-    height: 12px;
-    flex-shrink: 0;
-    transition: transform 0.4s ease;
-}
-
-.retry-btn:hover:not(:disabled) {
-    background: rgba(124, 92, 252, 0.15);
-    border-color: var(--accent);
+.retry-status-btn:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.2);
+    box-shadow: 0 2px 8px rgba(248, 113, 113, 0.2);
     transform: translateY(-1px);
-    box-shadow: 0 3px 12px var(--accent-glow);
 }
 
-.retry-btn:hover:not(:disabled) .retry-icon {
+.retry-status-btn:hover:not(:disabled) .retry-icon {
     transform: rotate(180deg);
 }
 
-.retry-btn:active:not(:disabled) {
+.retry-status-btn .retry-icon {
+    width: 12px;
+    height: 12px;
+    transition: transform 0.4s ease;
+}
+
+.retry-status-btn:active:not(:disabled) {
     transform: translateY(0);
 }
 
-.retry-btn:disabled {
-    opacity: 0.5;
+.retry-status-btn:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
@@ -470,6 +461,7 @@ body {
     justify-content: center;
     transition: transform var(--transition);
     color: var(--text-secondary);
+    pointer-events: none;
 }
 
 .custom-select.open .custom-select-trigger .arrow {

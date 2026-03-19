@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=2) }}">
     {% if turnstile_site_key %}
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     {% endif %}
@@ -64,8 +64,8 @@
                 <div class="custom-select" id="filterStatusSelect" data-value="">
                     <div class="custom-select-trigger" tabindex="0">
                         <span class="custom-select-label">全部状态</span>
-                        <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5">
+                        <span class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2.5">
                                 <path d="M6 9l6 6 6-6" />
                             </svg></span>
                     </div>
@@ -79,8 +79,8 @@
                 <div class="custom-select" id="filterSourceSelect" data-value="">
                     <div class="custom-select-trigger" tabindex="0">
                         <span class="custom-select-label">全部方式</span>
-                        <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5">
+                        <span class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2.5">
                                 <path d="M6 9l6 6 6-6" />
                             </svg></span>
                     </div>
@@ -101,8 +101,8 @@
                     <div class="custom-select" id="perPageSelect" data-value="5">
                         <div class="custom-select-trigger" tabindex="0">
                             <span class="custom-select-label">5</span>
-                            <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5">
+                            <span class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5">
                                     <path d="M6 9l6 6 6-6" />
                                 </svg></span>
                         </div>
@@ -349,29 +349,31 @@
                     <div class="task-main">
                         <span class="task-avid">${escapeHtml(item.avid)}</span>
                         <div class="task-main-actions">
-                            <span class="task-status ${st.class}">${st.label}</span>`;
-
             // 失败项目显示重试按钮（仅历史记录中）
             if (showSource && item.status === 'failed' && item.id) {
-                html += `<button class="retry-btn" onclick="retryItem(${item.id}, this)" title="重试"><svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>重试</button>`;
+                html += `< button class="task-status ${st.class} retry-status-btn" onclick = "retryItem(${item.id}, this)" title = "点击重试" > `;
+                html += `失败 < svg class="retry-icon" width = "12" height = "12" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" stroke - width="2.5" stroke - linecap="round" stroke - linejoin="round" ><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg > `;
+                html += `</button > `;
+            } else {
+                html += `< span class="task-status ${st.class}" > ${ st.label }</span > `;
             }
 
-            html += `</div></div>`;
+            html += `</div ></div > `;
 
             if (item.title) {
-                html += `<div class="task-title">${escapeHtml(item.title)}</div>`;
+                html += `< div class="task-title" > ${ escapeHtml(item.title) }</div > `;
             }
             if (item.progress) {
-                html += `<div class="task-progress">${escapeHtml(item.progress)}</div>`;
+                html += `< div class="task-progress" > ${ escapeHtml(item.progress) }</div > `;
             }
             if (showSource && item.source) {
-                html += `<div class="task-source">数据源: ${escapeHtml(item.source)}</div>`;
+                html += `< div class="task-source" > 数据源: ${ escapeHtml(item.source) }</div > `;
             }
             if (item.error_msg) {
-                html += `<div class="task-error">错误: ${escapeHtml(item.error_msg)}</div>`;
+                html += `< div class="task-error" > 错误: ${ escapeHtml(item.error_msg) }</div > `;
             }
-            html += `<div class="task-time">${formatTime(item.created_at)}</div>`;
-            html += `</div>`;
+            html += `< div class="task-time" > ${ formatTime(item.created_at) }</div > `;
+            html += `</div > `;
             return html;
         }
 
@@ -387,7 +389,7 @@
         function renderList(containerId, items, emptyText, showSource) {
             const container = document.getElementById(containerId);
             if (!items || items.length === 0) {
-                container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+                container.innerHTML = `< div class="empty-state" > ${ emptyText }</div > `;
                 return;
             }
             container.innerHTML = items.map(item => renderItem(item, showSource)).join('');
@@ -448,7 +450,7 @@
             }
 
             pagination.style.display = 'flex';
-            pageInfo.textContent = `第 ${historyPage} / ${historyTotalPages} 页（共 ${total} 条）`;
+            pageInfo.textContent = `第 ${ historyPage } / ${historyTotalPages} 页（共 ${total} 条）`;
             prevBtn.disabled = historyPage <= 1;
             nextBtn.disabled = historyPage >= historyTotalPages;
         }
@@ -501,12 +503,12 @@
                 } else {
                     showMessage(data.message, 'error');
                     btnEl.disabled = false;
-                    btnEl.innerHTML = '<svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>重试';
+                    btnEl.innerHTML = '失败 <svg class="retry-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
                 }
             } catch (err) {
                 showMessage('网络错误，请重试', 'error');
                 btnEl.disabled = false;
-                btnEl.innerHTML = '<svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>重试';
+                btnEl.innerHTML = '失败 <svg class="retry-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
             }
         }
 
