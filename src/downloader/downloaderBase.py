@@ -7,6 +7,7 @@ from dataclasses import dataclass, asdict, field
 from typing import Optional, Tuple
 from pathlib import Path
 from ..comm import *
+import requests as std_requests
 from curl_cffi import requests
 
 # 下载信息，只保留最基础的信息。只需要填写avid，其他字段用于调试，选填
@@ -170,9 +171,46 @@ class Downloader(ABC):
                 timeout=self.timeout,
                 impersonate="chrome110",  # 可选：chrome, chrome110, edge99, safari15_5
             )
+            if response.status_code in (403, 429, 503):
+                logger.warning(f"直接请求返回 {response.status_code}，尝试 Flaresolverr fallback: {url}")
+                return self._fetch_html_via_flaresolverr(url, referer)
             response.raise_for_status()
             return response.text
         except requests.exceptions.RequestException as e:
             logger.error(f"请求失败: {str(e)}")
+            return None
+
+    def _fetch_html_via_flaresolverr(self, url: str, referer: str = "") -> Optional[str]:
+        """通过 Flaresolverr 获取 HTML（用于绕过 Cloudflare 防护）"""
+        if not flaresolverr_config.get("Enabled", False):
+            logger.debug("Flaresolverr 未启用，跳过 fallback")
+            return None
+        fs_url = flaresolverr_config["URL"].rstrip("/") + "/v1"
+        fs_timeout = flaresolverr_config.get("Timeout", 60)
+        payload = {
+            "cmd": "request.get",
+            "url": url,
+            "maxTimeout": fs_timeout * 1000,
+        }
+        if referer:
+            payload["headers"] = {"Referer": referer}
+        logger.info(f"Flaresolverr fallback: POST {fs_url} for {url}")
+        try:
+            resp = std_requests.post(
+                fs_url,
+                json=payload,
+                timeout=fs_timeout + 10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("status") == "ok":
+                html = data.get("solution", {}).get("response", "")
+                logger.info(f"Flaresolverr fallback 成功: {url}")
+                return html if html else None
+            else:
+                logger.error(f"Flaresolverr 返回错误: {data.get('message', 'unknown')}")
+                return None
+        except Exception as e:
+            logger.error(f"Flaresolverr fallback 异常: {e}")
             return None
     

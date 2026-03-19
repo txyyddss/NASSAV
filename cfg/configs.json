@@ -69,5 +69,10 @@
         "APIKey": "",
         "Model": "deepseek-reasoner",
         "BaseURL": "https://api.deepseek.com"
+    },
+    "Flaresolverr": {
+        "Enabled": false,
+        "URL": "http://localhost:8191",
+        "Timeout": 60
     }
 }

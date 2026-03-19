@@ -67,6 +67,11 @@ deepseek_config.setdefault("APIKey", "")
 deepseek_config.setdefault("Model", "deepseek-reasoner")
 deepseek_config.setdefault("BaseURL", "https://api.deepseek.com")
 
+flaresolverr_config = configs.get("Flaresolverr", {})
+flaresolverr_config.setdefault("Enabled", False)
+flaresolverr_config.setdefault("URL", "http://localhost:8191")
+flaresolverr_config.setdefault("Timeout", 60)
+
 
 # 初始化下载器
 download_tool = f"'{project_root}/tools/m3u8-Downloader-Go'"
