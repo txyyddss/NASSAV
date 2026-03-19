@@ -114,6 +114,7 @@ body {
     margin-bottom: 18px;
     box-shadow: var(--shadow);
     transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+    overflow: visible;
 }
 
 .card:hover {
@@ -368,11 +369,14 @@ body {
 }
 
 .retry-btn {
-    padding: 4px 12px;
-    background: transparent;
-    border: 1px solid rgba(248, 113, 113, 0.35);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 14px;
+    background: rgba(124, 92, 252, 0.08);
+    border: 1px solid rgba(124, 92, 252, 0.3);
     border-radius: 20px;
-    color: var(--error);
+    color: var(--accent-hover);
     font-size: 0.75rem;
     font-weight: 600;
     font-family: inherit;
@@ -381,11 +385,22 @@ body {
     white-space: nowrap;
 }
 
+.retry-btn .retry-icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    transition: transform 0.4s ease;
+}
+
 .retry-btn:hover:not(:disabled) {
-    background: var(--error-bg);
-    border-color: var(--error);
+    background: rgba(124, 92, 252, 0.15);
+    border-color: var(--accent);
     transform: translateY(-1px);
-    box-shadow: 0 3px 12px rgba(248, 113, 113, 0.2);
+    box-shadow: 0 3px 12px var(--accent-glow);
+}
+
+.retry-btn:hover:not(:disabled) .retry-icon {
+    transform: rotate(180deg);
 }
 
 .retry-btn:active:not(:disabled) {
@@ -553,6 +568,7 @@ body {
     padding-top: 14px;
     border-top: 1px solid var(--border);
     flex-wrap: wrap;
+    overflow: visible;
 }
 
 .page-btn {
@@ -622,6 +638,13 @@ body {
 
 .per-page-group .custom-select .custom-select-options {
     min-width: 72px;
+    top: auto;
+    bottom: calc(100% + 6px);
+    transform-origin: bottom center;
+}
+
+.per-page-group .custom-select.open .custom-select-options {
+    transform: scaleY(1) translateY(0);
 }
 
 /* ==================== 动画 ==================== */

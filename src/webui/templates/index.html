@@ -353,7 +353,7 @@
 
             // 失败项目显示重试按钮（仅历史记录中）
             if (showSource && item.status === 'failed' && item.id) {
-                html += `<button class="retry-btn" onclick="retryItem(${item.id}, this)" title="重试">🔄 重试</button>`;
+                html += `<button class="retry-btn" onclick="retryItem(${item.id}, this)" title="重试"><svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>重试</button>`;
             }
 
             html += `</div></div>`;
@@ -501,12 +501,12 @@
                 } else {
                     showMessage(data.message, 'error');
                     btnEl.disabled = false;
-                    btnEl.textContent = '🔄 重试';
+                    btnEl.innerHTML = '<svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>重试';
                 }
             } catch (err) {
                 showMessage('网络错误，请重试', 'error');
                 btnEl.disabled = false;
-                btnEl.textContent = '🔄 重试';
+                btnEl.innerHTML = '<svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>重试';
             }
         }
 
