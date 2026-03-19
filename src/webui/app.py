@@ -6,6 +6,7 @@ from loguru import logger
 from ..comm import webui_config, save_path
 from .models import (
     init_queue_db, add_to_queue, is_duplicate, get_queue_status, get_item_status,
+    get_history_page, get_distinct_sources,
 )
 from curl_cffi import requests as cffi_requests
 
@@ -87,6 +88,18 @@ def create_app() -> Flask:
         if status:
             return jsonify(status)
         return jsonify({"error": "未找到"}), 404
+
+    @app.route("/api/history")
+    def history():
+        """分页获取历史记录，支持筛选"""
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+        status = request.args.get("status", "")
+        source = request.args.get("source", "")
+        result = get_history_page(page, per_page, status, source)
+        # 附带可用的下载方式列表，供前端筛选下拉框使用
+        result["sources"] = get_distinct_sources()
+        return jsonify(result)
 
     return app
 

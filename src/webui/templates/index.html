@@ -60,14 +60,36 @@
         <!-- 历史记录 -->
         <section class="card">
             <h2>📋 历史记录</h2>
+            <div class="history-filters" id="historyFilters">
+                <select id="filterStatus" class="filter-select" title="按状态筛选">
+                    <option value="">全部状态</option>
+                    <option value="completed">✅ 已完成</option>
+                    <option value="failed">❌ 失败</option>
+                </select>
+                <select id="filterSource" class="filter-select" title="按下载方式筛选">
+                    <option value="">全部方式</option>
+                </select>
+            </div>
             <div id="historyList" class="task-list">
                 <div class="empty-state">暂无历史记录</div>
+            </div>
+            <div class="pagination" id="historyPagination" style="display:none;">
+                <button id="prevPage" class="page-btn" title="上一页">‹</button>
+                <span id="pageInfo" class="page-info"></span>
+                <button id="nextPage" class="page-btn" title="下一页">›</button>
             </div>
         </section>
     </div>
 
     <script>
         let turnstileToken = '';
+
+        // ==================== 历史分页状态 ====================
+        let historyPage = 1;
+        let historyTotalPages = 1;
+        let historyFilterStatus = '';
+        let historyFilterSource = '';
+        let knownSources = [];   // 缓存已知的source列表
 
         // Turnstile回调
         function onTurnstileSuccess(token) {
@@ -201,21 +223,124 @@
             container.innerHTML = items.map(item => renderItem(item, showSource)).join('');
         }
 
-        // 刷新队列
+        // ==================== 队列刷新（正在下载 + 等待） ====================
         async function refreshQueue() {
             try {
                 const resp = await fetch('/api/queue');
                 const data = await resp.json();
                 renderList('currentList', data.current, '暂无正在下载的任务', false);
                 renderList('waitingList', data.waiting, '队列为空', false);
-                renderList('historyList', data.history, '暂无历史记录', true);
             } catch (err) {
                 console.error('刷新队列失败:', err);
             }
         }
 
-        // 初始化 + 自动刷新
+        // ==================== 历史记录分页 ====================
+        async function refreshHistory() {
+            try {
+                const params = new URLSearchParams({
+                    page: historyPage,
+                    per_page: 20,
+                });
+                if (historyFilterStatus) params.set('status', historyFilterStatus);
+                if (historyFilterSource) params.set('source', historyFilterSource);
+
+                const resp = await fetch('/api/history?' + params.toString());
+                const data = await resp.json();
+
+                // 渲染历史列表
+                renderList('historyList', data.items, '暂无历史记录', true);
+
+                // 更新分页状态
+                historyPage = data.page;
+                historyTotalPages = data.total_pages;
+                updatePagination(data.total);
+
+                // 更新下载方式下拉选项
+                if (data.sources && data.sources.length > 0) {
+                    updateSourceFilter(data.sources);
+                }
+            } catch (err) {
+                console.error('刷新历史失败:', err);
+            }
+        }
+
+        // 更新分页控件
+        function updatePagination(total) {
+            const pagination = document.getElementById('historyPagination');
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+
+            if (total === 0) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'flex';
+            pageInfo.textContent = `第 ${historyPage} / ${historyTotalPages} 页（共 ${total} 条）`;
+            prevBtn.disabled = historyPage <= 1;
+            nextBtn.disabled = historyPage >= historyTotalPages;
+        }
+
+        // 更新下载方式筛选下拉
+        function updateSourceFilter(sources) {
+            // 仅当sources列表变化时才重新渲染
+            const newKey = sources.join(',');
+            const oldKey = knownSources.join(',');
+            if (newKey === oldKey) return;
+
+            knownSources = sources;
+            const select = document.getElementById('filterSource');
+            const currentValue = select.value;
+
+            // 保留第一个"全部方式"选项
+            select.innerHTML = '<option value="">全部方式</option>';
+            sources.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                select.appendChild(opt);
+            });
+            // 恢复之前的选中值
+            if (currentValue && sources.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        // ==================== 事件绑定 ====================
+
+        // 筛选变更
+        document.getElementById('filterStatus').addEventListener('change', (e) => {
+            historyFilterStatus = e.target.value;
+            historyPage = 1;
+            refreshHistory();
+        });
+
+        document.getElementById('filterSource').addEventListener('change', (e) => {
+            historyFilterSource = e.target.value;
+            historyPage = 1;
+            refreshHistory();
+        });
+
+        // 翻页按钮
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (historyPage > 1) {
+                historyPage--;
+                refreshHistory();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (historyPage < historyTotalPages) {
+                historyPage++;
+                refreshHistory();
+            }
+        });
+
+        // ==================== 初始化 + 自动刷新 ====================
         refreshQueue();
+        refreshHistory();
         setInterval(refreshQueue, 3000);
     </script>
 </body>

@@ -117,13 +117,14 @@ class ProwlarrClient:
                 "2. 在匹配度相近时，优先选择文件最大的（通常画质更好）\n"
                 "3. seeders越多越好，确保能够下载\n"
                 "4. 忽略明显无关的结果（如合集/pack）\n"
-                "5. 仅返回一个数字ID，不要返回任何其他内容"
+                "5. 如果所有结果都与搜索番号明显不相关，则返回None\n"
+                "6. 仅返回一个数字ID或None，不要返回任何其他内容"
             )
 
             user_prompt = (
                 f"搜索番号: {avid}\n\n"
                 f"搜索结果:\n{json.dumps(items_info, ensure_ascii=False, indent=2)}\n\n"
-                "请选择最佳种子，仅返回ID数字。"
+                "请选择最佳种子，仅返回ID数字。如果没有合适的种子请返回None。"
             )
 
             logger.info("调用DeepSeek API选择最佳种子...")
@@ -138,6 +139,11 @@ class ProwlarrClient:
 
             answer = response.choices[0].message.content.strip()
             logger.info(f"DeepSeek返回: {answer}")
+
+            # 检查AI是否返回了None（表示没有合适的种子）
+            if answer.lower() == "none":
+                logger.warning(f"AI判断没有合适的种子: {avid}")
+                return None
 
             # 提取ID数字
             selected_id = None

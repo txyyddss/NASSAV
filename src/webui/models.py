@@ -138,7 +138,7 @@ def get_next_waiting() -> Optional[Dict[str, Any]]:
 
 
 def get_queue_status() -> Dict[str, List[Dict[str, Any]]]:
-    """获取完整队列状态，分类返回"""
+    """获取完整队列状态，分类返回（历史仅返回最近10条，完整历史使用get_history_page）"""
     conn = _get_conn()
     try:
         def fetch_rows(query: str) -> List[Dict[str, Any]]:
@@ -153,7 +153,7 @@ def get_queue_status() -> Dict[str, List[Dict[str, Any]]]:
         )
         history = fetch_rows(
             "SELECT * FROM download_queue WHERE status IN ('completed', 'failed') "
-            "ORDER BY updated_at DESC LIMIT 100"
+            "ORDER BY updated_at DESC LIMIT 10"
         )
 
         return {
@@ -179,5 +179,80 @@ def get_item_status(item_id: int) -> Optional[Dict[str, Any]]:
     except sqlite3.Error as e:
         logger.error(f"获取项目状态失败: {e}")
         return None
+    finally:
+        conn.close()
+
+
+def get_history_page(page: int = 1, per_page: int = 20,
+                     status: str = "", source: str = "") -> Dict[str, Any]:
+    """
+    分页获取历史记录，支持按状态和下载方式筛选
+    :param page: 页码（从1开始）
+    :param per_page: 每页条数
+    :param status: 筛选状态（completed / failed），为空则返回所有
+    :param source: 筛选下载方式（下载器名称），为空则返回所有
+    :return: { items, total, page, per_page, total_pages }
+    """
+    conn = _get_conn()
+    try:
+        # 构建动态WHERE子句
+        conditions = ["status IN ('completed', 'failed')"]
+        params: list = []
+
+        if status in ("completed", "failed"):
+            conditions.append("status = ?")
+            params.append(status)
+
+        if source:
+            conditions.append("source = ?")
+            params.append(source)
+
+        where_clause = " AND ".join(conditions)
+
+        # 查询总数
+        count_sql = f"SELECT COUNT(*) FROM download_queue WHERE {where_clause}"
+        total = conn.execute(count_sql, params).fetchone()[0]
+
+        # 计算分页
+        page = max(1, page)
+        per_page = max(1, min(per_page, 100))  # 限制最大100条/页
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = min(page, total_pages)
+        offset = (page - 1) * per_page
+
+        # 查询数据
+        data_sql = (
+            f"SELECT * FROM download_queue WHERE {where_clause} "
+            f"ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+        )
+        rows = conn.execute(data_sql, params + [per_page, offset]).fetchall()
+        items = [dict(r) for r in rows]
+
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": total_pages,
+        }
+    except sqlite3.Error as e:
+        logger.error(f"获取历史分页失败: {e}")
+        return {"items": [], "total": 0, "page": 1, "per_page": per_page, "total_pages": 1}
+    finally:
+        conn.close()
+
+
+def get_distinct_sources() -> List[str]:
+    """获取所有不同的下载方式（source值），用于筛选下拉框"""
+    conn = _get_conn()
+    try:
+        rows = conn.execute(
+            "SELECT DISTINCT source FROM download_queue "
+            "WHERE source IS NOT NULL AND source != '' ORDER BY source"
+        ).fetchall()
+        return [r[0] for r in rows]
+    except sqlite3.Error as e:
+        logger.error(f"获取下载方式列表失败: {e}")
+        return []
     finally:
         conn.close()

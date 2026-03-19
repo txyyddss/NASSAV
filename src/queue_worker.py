@@ -72,10 +72,11 @@ class QueueWorker:
 
                     # 更新最终状态
                     if result["success"]:
+                        progress_text = "添加下载任务成功" if result.get("source") == "Prowlarr" else "下载完成"
                         update_status(
                             avid,
                             status="completed",
-                            progress="下载完成",
+                            progress=progress_text,
                             source=result.get("source", ""),
                         )
                         # 记录到已下载数据库
