@@ -11,7 +11,7 @@ class HohoJDownloader(Downloader):
 
     def getHTML(self, avid: str) -> Optional[str]:
         '''需要先搜索，获取到详情页url'''
-        searchUrl = f"https://hohoj.tv/search?text={avid}"
+        searchUrl = f"https://{self.domain}/search?text={avid}"
         logger.debug(searchUrl)
         content = self._fetch_html(searchUrl)
         if not content: return None
@@ -23,9 +23,9 @@ class HohoJDownloader(Downloader):
             logger.info(first_id)
         if not first_id:
             return None
-        videoUrl = f"https://hohoj.tv/embed?id={first_id}"
+        videoUrl = f"https://{self.domain}/embed?id={first_id}"
         logger.debug(videoUrl)
-        content = self._fetch_html(videoUrl, referer=f"https://hohoj.tv/video?id={first_id}")
+        content = self._fetch_html(videoUrl, referer=f"https://{self.domain}/video?id={first_id}")
         if not content: return None
         return content
 

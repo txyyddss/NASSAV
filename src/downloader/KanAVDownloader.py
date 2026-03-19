@@ -13,7 +13,7 @@ class KanAVDownloader(Downloader):
 
     def getHTML(self, avid: str) -> Optional[str]:
         '''需要先搜索，获取到详情页url'''
-        searchUrl = f"https://kanav.info/index.php/vod/search.html?wd={avid}&by=time_add"
+        searchUrl = f"https://{self.domain}/index.php/vod/search.html?wd={avid}&by=time_add"
         logger.debug(searchUrl)
         content = self._fetch_html(searchUrl)
         if not content: return None

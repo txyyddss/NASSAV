@@ -65,32 +65,41 @@ class QueueWorker:
                 # 标记为下载中
                 update_status(avid, status="downloading", progress="开始处理...")
 
-                # 执行下载
-                dl_task = DownloadTask(progress_callback=progress_callback)
-                result = dl_task.execute(avid)
+                try:
+                    # 执行下载
+                    dl_task = DownloadTask(progress_callback=progress_callback)
+                    result = dl_task.execute(avid)
 
-                # 更新最终状态
-                if result["success"]:
-                    update_status(
-                        avid,
-                        status="completed",
-                        progress="下载完成",
-                        source=result.get("source", ""),
-                    )
-                    # 记录到已下载数据库
-                    try:
-                        data.batch_insert_bvids([avid], downloaded_path, "MissAV")
-                    except Exception as e:
-                        logger.error(f"记录已下载失败: {e}")
-                else:
+                    # 更新最终状态
+                    if result["success"]:
+                        update_status(
+                            avid,
+                            status="completed",
+                            progress="下载完成",
+                            source=result.get("source", ""),
+                        )
+                        # 记录到已下载数据库
+                        try:
+                            data.batch_insert_bvids([avid], downloaded_path, "MissAV")
+                        except Exception as e:
+                            logger.error(f"记录已下载失败: {e}")
+                    else:
+                        update_status(
+                            avid,
+                            status="failed",
+                            progress="下载失败",
+                            error_msg=result.get("error", "未知错误"),
+                        )
+
+                    logger.info(f"任务完成: {avid}, 结果: {'成功' if result['success'] else '失败'}")
+                except Exception as task_e:
+                    logger.error(f"处理任务 {avid} 异常: {task_e}")
                     update_status(
                         avid,
                         status="failed",
-                        progress="下载失败",
-                        error_msg=result.get("error", "未知错误"),
+                        progress="下载异常",
+                        error_msg=str(task_e),
                     )
-
-                logger.info(f"任务完成: {avid}, 结果: {'成功' if result['success'] else '失败'}")
 
             except Exception as e:
                 logger.error(f"队列工作线程异常: {e}")

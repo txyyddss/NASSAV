@@ -82,12 +82,12 @@ def run_cli(args):
         for it in sorted_downloaders:
             count += 1
             downloader = mgr.GetDownloader(it["downloaderName"])
-            if not downloader.setDomain(it["domain"]): # 设置成配置中的域名
-                logger.error(f"下载器 {downloader.getDownloaderName()} 的域名没有配置")
-                continue
             if downloader is None:
                 logger.error(f"下载器{it['downloaderName']} 没有找到")
                 raise ValueError(f"下载器{it['downloaderName']} 没有找到")
+            if not downloader.setDomain(it["domain"]): # 设置成配置中的域名
+                logger.error(f"下载器 {downloader.getDownloaderName()} 的域名没有配置")
+                continue
             logger.info(f"尝试使用Downloader: {downloader.getDownloaderName()} 下载")
 
             # 下载失败使用下一个downloader

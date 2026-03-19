@@ -115,28 +115,32 @@ class Downloader(ABC):
     def downloadM3u8(self, url: str, avid: str) -> bool:
         """m3u8视频下载"""
         os.makedirs(os.path.dirname(os.path.join(self.path, avid)), exist_ok=True)
+        # URL编码：将空格等特殊字符编码，避免命令行参数解析和HTTP请求失败
+        from urllib.parse import quote
+        url = quote(url, safe=':/?#[]@!$&\'()*+,;=-._~')
         try:
+            output_path = os.path.join(self.path, avid, avid+'.ts')
             if isNeedVideoProxy and self.proxy:
                 logger.info("使用代理")
-                command = f"{download_tool} -u {url} -o {os.path.join(self.path, avid, avid+'.ts')} -p {self.proxy} -H Referer:http://{self.domain}"
+                command = f"{download_tool} -u \"{url}\" -o \"{output_path}\" -p {self.proxy} -H Referer:http://{self.domain}"
             else:
                 logger.info("不使用代理")
-                command = f"{download_tool} -u {url} -o {os.path.join(self.path, avid, avid+'.ts')} -H Referer:http://{self.domain}"
+                command = f"{download_tool} -u \"{url}\" -o \"{output_path}\" -H Referer:http://{self.domain}"
             logger.debug(command)
             if os.system(command) != 0:
                 # 难顶。。。使用代理下载失败，尝试不用代理；不用代理下载失败，尝试使用代理
                 if not isNeedVideoProxy and self.proxy:
                     logger.info("尝试使用代理")
-                    command = f"{download_tool} -u {url} -o {os.path.join(self.path, avid, avid+'.ts')} -p {self.proxy} -H Referer:http://{self.domain}"
+                    command = f"{download_tool} -u \"{url}\" -o \"{output_path}\" -p {self.proxy} -H Referer:http://{self.domain}"
                 else:
                     logger.info("尝试不使用代理")
-                    command = f"{download_tool} -u {url} -o {os.path.join(self.path, avid, avid+'.ts')} -H Referer:http://{self.domain}"
+                    command = f"{download_tool} -u \"{url}\" -o \"{output_path}\" -H Referer:http://{self.domain}"
                 logger.debug(f"retry {command}")
                 if os.system(command) != 0:
                     return False
             
             # 转mp4
-            convert = f"{ffmpeg_tool} -i {os.path.join(self.path, avid, avid+'.ts')} -c copy -f mp4 {os.path.join(self.path, avid, avid+'.mp4')}"
+            convert = f"{ffmpeg_tool} -i \"{os.path.join(self.path, avid, avid+'.ts')}\" -c copy -f mp4 \"{os.path.join(self.path, avid, avid+'.mp4')}\""
             logger.debug(convert)
             if os.system(convert) != 0:
                 return False
@@ -146,7 +150,8 @@ class Downloader(ABC):
                 logger.error(f"删除ts文件失败: {e}")
                 return False
             return True
-        except:
+        except Exception as e:
+            logger.error(f"downloadM3u8异常: {e}")
             return False
     
     def _fetch_html(self, url: str, referer: str = "") -> Optional[str]:

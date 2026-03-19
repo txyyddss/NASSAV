@@ -128,50 +128,57 @@ class Sracper:
             metadata = AVMetadata()
             # 0. 提取avid
             pattern = r'<title>((\d|[A-Z])+-\d+)'
-            avid = re.search(pattern, html).group(1)
-            if not avid:
+            avid_match = re.search(pattern, html)
+            if not avid_match:
                 return None
+            avid = avid_match.group(1)
             logger.debug(avid)
+            
             # 1. 提取标题
             title_pattern = r'<title>(.*?) - JavBus</title>'
-            title = re.search(title_pattern, html).group(1)
-            if not title:
+            title_match = re.search(title_pattern, html)
+            if not title_match:
                 return None
+            title = title_match.group(1)
             logger.debug(title)
+            
             # 2. 提取封面图
             cover_pattern = r'<a class="bigImage" href="([^"]+)"><img src="([^"]+)"'
-            cover = re.search(cover_pattern, html).group(1)
-            if not cover:
+            cover_match = re.search(cover_pattern, html)
+            if not cover_match:
                 return None
+            cover = cover_match.group(1)
             logger.debug(cover)
-            # 3. 提取描述
+            
+            # 3. 提取描述 (可选)
             desc_pattern = r'<meta name="description" content="([^"]+)">'
-            desc = re.search(desc_pattern, html).group(1)
-            if not desc:
-                return None
-            logger.debug(desc)
-            # 4. 提取关键字
+            desc_match = re.search(desc_pattern, html)
+            desc = desc_match.group(1) if desc_match else ""
+            logger.debug(f"desc exists: {bool(desc)}")
+            
+            # 4. 提取关键字 (可选)
             keywords_pattern = r'<meta name="keywords" content="([^"]+)">'
-            keywords = re.search(keywords_pattern, html).group(1).split(',')
-            if not keywords:
-                return None
-            logger.debug(keywords)
-            # 5. 提取发行日期
+            keywords_match = re.search(keywords_pattern, html)
+            keywords = keywords_match.group(1).split(',') if keywords_match else []
+            logger.debug(f"keywords count: {len(keywords)}")
+            
+            # 5. 提取发行日期 (可选)
             date_pattern = r'<span class="header">發行日期:</span> ([^<]+)'
-            date = re.search(date_pattern, html).group(1).strip()
-            if not date:
-                return None
+            date_match = re.search(date_pattern, html)
+            date = date_match.group(1).strip() if date_match else ""
             logger.debug(date)
-            # 6. 提取时长
+            
+            # 6. 提取时长 (可选)
             duration_pattern = r'<span class="header">長度:</span> ([^<]+)'
-            duration = re.search(duration_pattern, html).group(1).strip()
-            if not duration:
-                return None
-            logger.debug(duration)
+            duration_match = re.search(duration_pattern, html)
+            duration = duration_match.group(1).strip() if duration_match else ""
+            logger.debug(f"duration: {duration}")
+            
             # 7. 提取演员及头像
             actors_pattern = r'<a class="avatar-box" href="[^"]+">\s*<div class="photo-frame">\s*<img src="([^"]+)"[^>]+>\s*</div>\s*<span>([^<]+)</span>'
             actresses = re.findall(actors_pattern, html)
-            logger.debug(actresses)
+            logger.debug(f"actresses count: {len(actresses)}")
+            
             # 匹配样品图像
             fanart_pattern = r'<a class="sample-box" href="(.*?\.jpg)">'
             fanarts = re.findall(fanart_pattern, html)
@@ -257,9 +264,9 @@ class Sracper:
             art = ET.SubElement(root, "art")
             ET.SubElement(art, "poster").text = prefix+"poster.jpg"
         
-        # 预览
-        for i in range(1, len(metadata.fanarts) + 1):
-            ET.SubElement(art, "fanart").text = prefix+f"fanart-{i}.jpg"
+            # 预览
+            for i in range(1, len(metadata.fanarts) + 1):
+                ET.SubElement(art, "fanart").text = prefix+f"fanart-{i}.jpg"
         
         # 演员信息
         for name, _ in metadata.actress.items():
@@ -272,12 +279,12 @@ class Sracper:
             ET.SubElement(root, "genre").text = genre
 
         # 转换为格式化的XML
-        xml_str = ET.tostring(root, encoding='utf-8')
+        xml_str = ET.tostring(root, encoding='unicode')
         dom = minidom.parseString(xml_str)
         
         # 写入文件
         with open(os.path.join(self.path, metadata.avid, metadata.avid+".nfo"), 'w', encoding='utf-8') as f:
-            dom.writexml(f, indent="  ", addindent="  ", newl="\n", encoding='utf-8')
+            dom.writexml(f, indent="  ", addindent="  ", newl="\n")
         return True
 
     def _download_file(self, url: str, filename: str, referer: str = "") -> bool:

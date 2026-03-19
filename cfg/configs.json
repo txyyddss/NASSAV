@@ -40,17 +40,17 @@
         {
             "downloaderName": "AvToday",
             "domain": "avtoday.io",
-            "weight": 0
+            "weight": 200
         },
         {
             "downloaderName": "NetFlav",
             "domain": "netflav.com",
-            "weight": 0
+            "weight": 300
         },
         {
-            "downloaderName": "KissAv",
-            "domain": "f15.bzraizy.cc",
-            "weight": 0
+            "downloaderName": "GGJav",
+            "domain": "ggjav.com",
+            "weight": 400
         }
     ],
     "WebUI": {

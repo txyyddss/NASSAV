@@ -73,5 +73,5 @@ download_tool = f"'{project_root}/tools/m3u8-Downloader-Go'"
 ffmpeg_tool = f"'ffmpeg'"
 if platform.system() == 'Windows':
     print("platform: Windows")
-    download_tool = rf"{project_root}\tools\m3u8-Downloader-Go.exe"
-    ffmpeg_tool = rf"{project_root}\tools\ffmpeg.exe"
+    download_tool = rf'"{project_root}\tools\m3u8-Downloader-Go.exe"'
+    ffmpeg_tool = rf'"{project_root}\tools\ffmpeg.exe"'
