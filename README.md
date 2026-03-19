@@ -1,18 +1,7 @@
-<div align="center">
-<img style="max-width:50%;" src="pic/logo.png" alt="NASSAV" />
-<br>
-</div>
-
-<div align="center">
-  <img src="https://img.shields.io/github/stars/Satoing/NASSAV?style=for-the-badge&color=FF69B4" alt="Stars">
-  <img src="https://img.shields.io/github/forks/Satoing/NASSAV?style=for-the-badge&color=FF69B4" alt="Forks">
-  <img src="https://img.shields.io/github/issues/Satoing/NASSAV?style=for-the-badge&color=FF69B4" alt="Issues">
-  <img src="https://img.shields.io/github/license/Satoing/NASSAV?style=for-the-badge&color=FF69B4" alt="License">
-</div>
-
+## 本项目为[NASSAV](https://github.com/Satoing/NASSAV)的Fork 感谢原作者的付出!
 ## 项目简介
 
-TX媒体库AV求片 是一个基于 Python 开发的多源影视资源下载管理工具，支持从多个数据源自动下载、整理和刮削影视资源。
+NASSAV 是一个基于 Python 开发的多源影视资源下载管理工具，支持从多个数据源自动下载、整理和刮削影视资源。
 
 项目采用模块化设计，支持自定义下载器、WebUI 管理界面、Prowlarr 种子搜索兜底，并提供完整的元数据管理功能。
 
