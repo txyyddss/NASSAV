@@ -3,7 +3,7 @@ import threading
 import time
 from loguru import logger
 from .webui.models import (
-    get_next_waiting, update_status, init_queue_db,
+    get_next_waiting, update_status, init_queue_db, reset_running_tasks
 )
 from .download_task import DownloadTask
 from . import data
@@ -31,6 +31,9 @@ class QueueWorker:
 
         init_queue_db()
         data.initialize_db(downloaded_path, "MissAV")
+
+        # 将之前中断的任务重置为等待状态
+        reset_running_tasks()
 
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._run, daemon=True, name="QueueWorker")

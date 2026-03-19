@@ -51,6 +51,23 @@ def init_queue_db():
         conn.close()
 
 
+def reset_running_tasks():
+    """重启时，将所有'运行中'状态的任务重置为'waiting'，防止队列卡死"""
+    conn = _get_conn()
+    try:
+        count = conn.execute(
+            "UPDATE download_queue SET status = 'waiting', progress = '程序重启，重新排队...', error_msg = '' "
+            "WHERE status IN ('downloading', 'searching', 'scraping', 'prowlarr_search')"
+        ).rowcount
+        conn.commit()
+        if count > 0:
+            logger.info(f"已重置 {count} 个由于重启中断的运行中任务为等待状态")
+    except sqlite3.Error as e:
+        logger.error(f"重置运行中任务失败: {e}")
+    finally:
+        conn.close()
+
+
 def add_to_queue(avid: str) -> Dict[str, Any]:
     """
     添加AVID到下载队列
