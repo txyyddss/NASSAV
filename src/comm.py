@@ -17,7 +17,7 @@ logger.info(configs)
 logger.add(
     configs["LogPath"]+"/{time:YYYY-MM-DD}.log",
     rotation="00:00",            
-    retention="7 days", 
+    retention="3 days", 
     enqueue=False,
     level="DEBUG",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"

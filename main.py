@@ -32,12 +32,13 @@ def run_webui():
     worker = QueueWorker()
     worker.start()
 
-    # 启动Flask
-    logger.info(f"启动WebUI，端口: {port}")
+    # 启动Flask (使用waitress WSGI服务器)
+    logger.info(f"启动WebUI (waitress)，端口: {port}")
     app = create_app()
 
     try:
-        app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
+        from waitress import serve
+        serve(app, host="0.0.0.0", port=port)
     except KeyboardInterrupt:
         logger.info("收到停止信号")
     finally:
@@ -136,7 +137,7 @@ def run_cli(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="NASSAV 下载管理器")
+    parser = argparse.ArgumentParser(description="TX媒体库AV求片 下载管理器")
     
     parser.add_argument('-f', '--force', action='store_true', help='跳过DB检查，强制执行')
     parser.add_argument('-t', '--target', type=str, help='指定车牌号')

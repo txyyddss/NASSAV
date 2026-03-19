@@ -2,4 +2,5 @@ curl_cffi==0.10.0
 pillow==11.1.0
 loguru==0.7.3
 flask>=3.1.0
+waitress>=3.0.0
 openai>=1.68.0
