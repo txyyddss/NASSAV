@@ -341,37 +341,6 @@
             } catch { return ts; }
         }
 
-        // 渲染任务项
-        function renderItem(item, showSource) {
-            const st = STATUS_MAP[item.status] || { label: item.status, class: '' };
-            let html = `<div class="task-item"><div class="task-main"><span class="task-avid">${escapeHtml(item.avid)}</span><div class="task-main-actions">`;
-
-            // 失败项目显示重试按钮（仅历史记录中）
-            if (showSource && item.status === 'failed' && item.id) {
-                html += `<button class="task-status ${st.class} retry-status-btn" onclick="retryItem(${item.id}, this)" title="点击重试">失败 <svg class="retry-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>`;
-            } else {
-                html += `<span class="task-status ${st.class}">${st.label}</span>`;
-            }
-
-            html += `</div></div>`;
-
-            if (item.title) {
-                html += `<div class="task-title">${escapeHtml(item.title)}</div>`;
-            }
-            if (item.progress) {
-                html += `<div class="task-progress">${escapeHtml(item.progress)}</div>`;
-            }
-            if (showSource && item.source) {
-                html += `<div class="task-source">数据源: ${escapeHtml(item.source)}</div>`;
-            }
-            if (item.error_msg) {
-                html += `<div class="task-error">错误: ${escapeHtml(item.error_msg)}</div>`;
-            }
-            html += `<div class="task-time">${formatTime(item.created_at)}</div>`;
-            html += `</div>`;
-            return html;
-        }
-
         // 防XSS
         function escapeHtml(text) {
             if (!text) return '';
@@ -380,14 +349,82 @@
             return div.innerHTML;
         }
 
-        // 渲染列表
+        // 生成任务项的状态指纹（用于判断是否需要更新）
+        function itemFingerprint(item, showSource) {
+            return [item.avid, item.status, item.title || '', item.progress || '',
+            showSource ? (item.source || '') : '', item.error_msg || '', item.created_at || ''].join('|');
+        }
+
+        // 构建任务项 DOM 元素
+        function buildItemEl(item, showSource) {
+            const st = STATUS_MAP[item.status] || { label: item.status, class: '' };
+            const el = document.createElement('div');
+            el.className = 'task-item';
+            // 用 id 或 avid 作为唯一标识
+            el.dataset.key = item.id ? String(item.id) : escapeHtml(item.avid);
+            el.dataset.fp = itemFingerprint(item, showSource);
+
+            let html = `<div class="task-main"><span class="task-avid">${escapeHtml(item.avid)}</span><div class="task-main-actions">`;
+            if (showSource && item.status === 'failed' && item.id) {
+                html += `<button class="task-status ${st.class} retry-status-btn" onclick="retryItem(${item.id}, this)" title="点击重试">失败 <svg class="retry-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>`;
+            } else {
+                html += `<span class="task-status ${st.class}">${st.label}</span>`;
+            }
+            html += `</div></div>`;
+            if (item.title) html += `<div class="task-title">${escapeHtml(item.title)}</div>`;
+            if (item.progress) html += `<div class="task-progress">${escapeHtml(item.progress)}</div>`;
+            if (showSource && item.source) html += `<div class="task-source">数据源: ${escapeHtml(item.source)}</div>`;
+            if (item.error_msg) html += `<div class="task-error">错误: ${escapeHtml(item.error_msg)}</div>`;
+            html += `<div class="task-time">${formatTime(item.created_at)}</div>`;
+            el.innerHTML = html;
+            return el;
+        }
+
+        // 智能 DOM diff 渲染列表（避免整体重建导致闪烁）
         function renderList(containerId, items, emptyText, showSource) {
             const container = document.getElementById(containerId);
+
             if (!items || items.length === 0) {
+                // 已经是 empty-state 则不重复写
+                if (container.children.length === 1 && container.firstElementChild.classList.contains('empty-state')) return;
                 container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
                 return;
             }
-            container.innerHTML = items.map(item => renderItem(item, showSource)).join('');
+
+            // 建立当前 DOM 中各 key 对应的元素映射
+            const existing = new Map();
+            Array.from(container.children).forEach(el => {
+                if (el.dataset.key) existing.set(el.dataset.key, el);
+            });
+
+            const newKeys = new Set();
+            const fragment = document.createDocumentFragment();
+
+            items.forEach(item => {
+                const key = item.id ? String(item.id) : escapeHtml(item.avid);
+                const fp = itemFingerprint(item, showSource);
+                newKeys.add(key);
+
+                let el = existing.get(key);
+                if (!el) {
+                    // 新增项
+                    el = buildItemEl(item, showSource);
+                } else if (el.dataset.fp !== fp) {
+                    // 内容有变化，原地更新
+                    const updated = buildItemEl(item, showSource);
+                    el.dataset.fp = fp;
+                    el.innerHTML = updated.innerHTML;
+                }
+                fragment.appendChild(el);
+            });
+
+            // 移除已不存在的项
+            existing.forEach((el, key) => {
+                if (!newKeys.has(key)) el.remove();
+            });
+
+            // 如果顺序或内容有变化，一次性替换容器内容
+            container.appendChild(fragment);
         }
 
         // ==================== 队列刷新（正在下载 + 等待） ====================
@@ -527,7 +564,8 @@
         // ==================== 初始化 + 自动刷新 ====================
         refreshQueue();
         refreshHistory();
-        setInterval(refreshQueue, 3000);
+        setInterval(refreshQueue, 1500);       // 队列：1.5s 刷新一次
+        setInterval(refreshHistory, 5000);     // 历史：5s 刷新一次
     </script>
 </body>
 
