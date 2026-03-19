@@ -84,7 +84,7 @@ class ProwlarrClient:
         :return: 选中的资源dict，失败返回None
         """
         if not deepseek_config.get("APIKey"):
-            logger.error("DeepSeek API Key未配置，使用默认选择策略")
+            logger.info("DeepSeek API Key未配置，使用默认选择策略")
             return self._fallback_select(results, avid)
 
         try:

@@ -62,8 +62,8 @@ class QueueWorker:
                 def progress_callback(av: str, status: str, msg: str):
                     update_status(av, status=status, progress=msg)
 
-                # 标记为下载中
-                update_status(avid, status="downloading", progress="开始处理...")
+                # 标记为下载中，并清除上次可能残留的旧错误信息
+                update_status(avid, status="downloading", progress="开始处理...", error_msg="", source="")
 
                 try:
                     # 执行下载

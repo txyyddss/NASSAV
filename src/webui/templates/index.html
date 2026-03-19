@@ -384,7 +384,7 @@
         function renderList(containerId, items, emptyText, showSource) {
             const container = document.getElementById(containerId);
             if (!items || items.length === 0) {
-                container.innerHTML = `< div class="empty-state" > ${emptyText}</div > `;
+                container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
                 return;
             }
             container.innerHTML = items.map(item => renderItem(item, showSource)).join('');

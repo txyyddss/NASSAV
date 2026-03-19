@@ -117,7 +117,7 @@ class Downloader(ABC):
     
     def downloadM3u8(self, url: str, avid: str) -> bool:
         """m3u8视频下载"""
-        os.makedirs(os.path.dirname(os.path.join(self.path, avid)), exist_ok=True)
+        os.makedirs(os.path.join(self.path, avid), exist_ok=True)
         # URL编码：将空格等特殊字符编码，避免命令行参数解析和HTTP请求失败
         from urllib.parse import quote
         url = quote(url, safe=':/?#[]@!$&\'()*+,;=-._~')

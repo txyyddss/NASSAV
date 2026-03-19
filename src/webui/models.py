@@ -89,24 +89,24 @@ def is_duplicate(avid: str) -> bool:
         conn.close()
 
 
-def update_status(avid: str, status: str, progress: str = "",
-                  source: str = "", title: str = "", error_msg: str = ""):
+def update_status(avid: str, status: str, progress: str = None,
+                  source: str = None, title: str = None, error_msg: str = None):
     """更新队列项状态"""
     conn = _get_conn()
     try:
         fields = ["status = ?", "updated_at = ?"]
         values: list = [status, datetime.now().isoformat()]
 
-        if progress:
+        if progress is not None:
             fields.append("progress = ?")
             values.append(progress)
-        if source:
+        if source is not None:
             fields.append("source = ?")
             values.append(source)
-        if title:
+        if title is not None:
             fields.append("title = ?")
             values.append(title)
-        if error_msg:
+        if error_msg is not None:
             fields.append("error_msg = ?")
             values.append(error_msg)
 
