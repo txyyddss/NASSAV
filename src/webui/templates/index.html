@@ -120,6 +120,13 @@
         </section>
     </div>
 
+    <!-- CF 验证码 Toast 弹窗 -->
+    <div class="cf-toast" id="cfToast" role="alert" aria-live="assertive">
+        <span class="cf-toast-icon">🔒</span>
+        <span class="cf-toast-text">请先完成 Cloudflare 人机验证后再操作</span>
+        <button class="cf-toast-close" onclick="hideCFToast()" title="关闭">✕</button>
+    </div>
+
     <script>
         let turnstileToken = '';
 
@@ -282,7 +289,7 @@
 
             {% if turnstile_site_key %}
             if (!turnstileToken) {
-                showMessage('请先完成人机验证', 'error');
+                showCFToast();
                 return;
             }
             {% endif %}
@@ -341,6 +348,18 @@
             } catch { return ts; }
         }
 
+        // ==================== CF Toast 弹窗 ====================
+        let cfToastTimer = null;
+        function showCFToast() {
+            const toast = document.getElementById('cfToast');
+            toast.classList.add('show');
+            clearTimeout(cfToastTimer);
+            cfToastTimer = setTimeout(hideCFToast, 4000);
+        }
+        function hideCFToast() {
+            document.getElementById('cfToast').classList.remove('show');
+        }
+
         // 防XSS
         function escapeHtml(text) {
             if (!text) return '';
@@ -380,48 +399,55 @@
             return el;
         }
 
-        // 智能 DOM diff 渲染列表（避免整体重建导致闪烁）
+        // 真正原地更新：已有节点绝不从 DOM 中摘除，彻底消除闪烁
         function renderList(containerId, items, emptyText, showSource) {
             const container = document.getElementById(containerId);
 
             if (!items || items.length === 0) {
-                // 已经是 empty-state 则不重复写
                 if (container.children.length === 1 && container.firstElementChild.classList.contains('empty-state')) return;
-                container.replaceChildren(Object.assign(document.createElement('div'), { className: 'empty-state', textContent: emptyText }));
+                container.innerHTML = '';
+                const es = document.createElement('div');
+                es.className = 'empty-state';
+                es.textContent = emptyText;
+                container.appendChild(es);
                 return;
             }
 
-            // 建立当前 DOM 中各 key 对应的元素映射（跳过无 key 的遗留节点如 empty-state）
+            // 移除 empty-state（无 data-key 节点）
+            Array.from(container.children).forEach(el => { if (!el.dataset.key) el.remove(); });
+
+            // 建立 key → 现有 DOM 节点 映射
             const existing = new Map();
-            Array.from(container.children).forEach(el => {
-                if (el.dataset.key) existing.set(el.dataset.key, el);
-            });
+            Array.from(container.children).forEach(el => existing.set(el.dataset.key, el));
 
-            const newKeys = new Set();
-            const fragment = document.createDocumentFragment();
-
-            items.forEach(item => {
+            // 按新列表顺序处理，使用 insertBefore 确保顺序正确
+            items.forEach((item, index) => {
                 const key = item.id ? String(item.id) : String(item.avid);
                 const fp = itemFingerprint(item, showSource);
-                newKeys.add(key);
+                const ref = container.children[index] || null; // 当前位置的节点
 
                 let el = existing.get(key);
                 if (!el) {
-                    // 新增项
+                    // 全新节点：创建并标记 is-new 触发入场动画
                     el = buildItemEl(item, showSource);
-                } else if (el.dataset.fp !== fp) {
-                    // 内容有变化，仅更新 innerHTML，不销毁节点
-                    el.dataset.fp = fp;
-                    el.innerHTML = buildItemEl(item, showSource).innerHTML;
+                    el.classList.add('is-new');
+                    // 下一帧移除 is-new，避免后续刷新重触发动画
+                    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('is-new')));
+                    container.insertBefore(el, ref);
+                    existing.set(key, el);
+                } else {
+                    // 已有节点：仅在内容变化时更新，位置不符时移动
+                    if (el.dataset.fp !== fp) {
+                        el.dataset.fp = fp;
+                        el.innerHTML = buildItemEl(item, showSource).innerHTML;
+                    }
+                    if (el !== ref) container.insertBefore(el, ref);
                 }
-                fragment.appendChild(el);
             });
 
-            // 移除已不存在的项（含 empty-state 等无 key 节点）
+            // 删除已不存在的旧节点
+            const newKeys = new Set(items.map(i => i.id ? String(i.id) : String(i.avid)));
             existing.forEach((el, key) => { if (!newKeys.has(key)) el.remove(); });
-
-            // 原子替换容器中全部子节点，彻底清除 empty-state 等孤立节点
-            container.replaceChildren(fragment);
         }
 
         // ==================== 队列刷新（正在下载 + 等待） ====================
@@ -503,7 +529,7 @@
         async function retryItem(itemId, btnEl) {
             {% if turnstile_site_key %}
             if (!turnstileToken) {
-                showMessage('请先完成人机验证后再重试', 'error');
+                showCFToast();
                 return;
             }
             {% endif %}
