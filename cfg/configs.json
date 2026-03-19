@@ -62,7 +62,7 @@
     "Prowlarr": {
         "Enabled": true,
         "URL": "http://localhost:9696",
-        "APIKey": "18dc49893ca540a8900c9c9194a71962",
+        "APIKey": "",
         "Timeout": 30
     },
     "DeepSeek": {
