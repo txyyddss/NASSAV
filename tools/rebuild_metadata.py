@@ -41,8 +41,6 @@ for fold in folders:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         original_content = f.read()
                     
-                    # 使用 ElementTree 生成修改后的内容
-                    tree.write(file_path, encoding='utf-8', xml_declaration=True)
                     
                     # 恢复原始格式（ElementTree 会改变格式）
                     with open(file_path, 'r+', encoding='utf-8') as f:

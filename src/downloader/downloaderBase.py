@@ -79,7 +79,7 @@ class Downloader(ABC):
         pass
 
     @abstractmethod
-    def parseHTML(self, html: str, avid: str) -> Optional[AVDownloadInfo]:
+    def parseHTML(self, html: str) -> Optional[AVDownloadInfo]:
         '''
         需要实现的方法：根据html，解析出元数据，返回AVDownloadInfo
         注意：实现新的downloader，只需要获取到m3u8就行了(也可以多匹配点方便调试)，元数据统一使用MissAV
@@ -105,7 +105,7 @@ class Downloader(ABC):
             logger.error("解析元数据失败")
             return None
         
-        info.avid = info.avid.upper() # 强制大写
+        info.avid = avid.upper() # 强制大写
         info.to_json(os.path.join(self.path, avid, "download_info.json"))
         logger.info("已保存到 download_info.json")
 
@@ -140,7 +140,10 @@ class Downloader(ABC):
             logger.debug(convert)
             if os.system(convert) != 0:
                 return False
-            if os.system(f"rm {os.path.join(self.path, avid, avid+'.ts')}") != 0:
+            try:
+                os.remove(os.path.join(self.path, avid, avid+'.ts'))
+            except OSError as e:
+                logger.error(f"删除ts文件失败: {e}")
                 return False
             return True
         except:
@@ -149,7 +152,7 @@ class Downloader(ABC):
     def _fetch_html(self, url: str, referer: str = "") -> Optional[str]:
         logger.debug(f"fetch url: {url}")
         try:
-            newHeader = headers
+            newHeader = headers.copy()
             if referer:
                 newHeader["Referer"] = referer
             response = requests.get(

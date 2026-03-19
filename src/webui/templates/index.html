@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NASSAV 下载管理器 - 提交番号进行自动下载">
+    <title>NASSAV 下载管理器</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% if turnstile_site_key %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    {% endif %}
+</head>
+<body>
+    <div class="container">
+        <!-- 标题 -->
+        <header class="header">
+            <h1>NASSAV</h1>
+            <p class="subtitle">下载管理器</p>
+        </header>
+
+        <!-- 提交表单 -->
+        <section class="card submit-card">
+            <h2>📥 提交下载</h2>
+            <form id="submitForm" class="submit-form">
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="avidInput"
+                        name="avid"
+                        placeholder="输入番号 (如 SONE-217 或 FC2-PPV-123456)"
+                        autocomplete="off"
+                        maxlength="30"
+                        required
+                    >
+                    <button type="submit" id="submitBtn">提交</button>
+                </div>
+                {% if turnstile_site_key %}
+                <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-callback="onTurnstileSuccess" data-theme="dark"></div>
+                {% endif %}
+                <div id="message" class="message" style="display:none;"></div>
+            </form>
+        </section>
+
+        <!-- 正在下载 -->
+        <section class="card">
+            <h2>⏬ 正在下载</h2>
+            <div id="currentList" class="task-list">
+                <div class="empty-state">暂无正在下载的任务</div>
+            </div>
+        </section>
+
+        <!-- 等待队列 -->
+        <section class="card">
+            <h2>⏳ 等待队列</h2>
+            <div id="waitingList" class="task-list">
+                <div class="empty-state">队列为空</div>
+            </div>
+        </section>
+
+        <!-- 历史记录 -->
+        <section class="card">
+            <h2>📋 历史记录</h2>
+            <div id="historyList" class="task-list">
+                <div class="empty-state">暂无历史记录</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let turnstileToken = '';
+
+        // Turnstile回调
+        function onTurnstileSuccess(token) {
+            turnstileToken = token;
+        }
+
+        // 显示消息
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message message-' + type;
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, 5000);
+        }
+
+        // 提交表单
+        document.getElementById('submitForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('avidInput');
+            const btn = document.getElementById('submitBtn');
+            const avid = input.value.trim();
+
+            if (!avid) {
+                showMessage('请输入番号', 'error');
+                return;
+            }
+
+            {% if turnstile_site_key %}
+            if (!turnstileToken) {
+                showMessage('请先完成人机验证', 'error');
+                return;
+            }
+            {% endif %}
+
+            btn.disabled = true;
+            btn.textContent = '提交中...';
+
+            try {
+                const resp = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        avid: avid,
+                        turnstile_token: turnstileToken
+                    })
+                });
+                const data = await resp.json();
+
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    input.value = '';
+                    turnstileToken = '';
+                    // 重置Turnstile
+                    if (typeof turnstile !== 'undefined') {
+                        turnstile.reset();
+                    }
+                    refreshQueue();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (err) {
+                showMessage('网络错误，请重试', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '提交';
+            }
+        });
+
+        // 状态映射
+        const STATUS_MAP = {
+            'waiting': { label: '等待中', class: 'status-waiting' },
+            'searching': { label: '搜索中', class: 'status-active' },
+            'downloading': { label: '下载中', class: 'status-active' },
+            'scraping': { label: '刮削中', class: 'status-active' },
+            'prowlarr_search': { label: 'Prowlarr搜索中', class: 'status-active' },
+            'completed': { label: '已完成', class: 'status-completed' },
+            'failed': { label: '失败', class: 'status-failed' },
+        };
+
+        // 格式化时间
+        function formatTime(ts) {
+            if (!ts) return '';
+            try {
+                const d = new Date(ts);
+                return d.toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+            } catch { return ts; }
+        }
+
+        // 渲染任务项
+        function renderItem(item, showSource) {
+            const st = STATUS_MAP[item.status] || { label: item.status, class: '' };
+            let html = `
+                <div class="task-item">
+                    <div class="task-main">
+                        <span class="task-avid">${escapeHtml(item.avid)}</span>
+                        <span class="task-status ${st.class}">${st.label}</span>
+                    </div>`;
+
+            if (item.title) {
+                html += `<div class="task-title">${escapeHtml(item.title)}</div>`;
+            }
+            if (item.progress) {
+                html += `<div class="task-progress">${escapeHtml(item.progress)}</div>`;
+            }
+            if (showSource && item.source) {
+                html += `<div class="task-source">数据源: ${escapeHtml(item.source)}</div>`;
+            }
+            if (item.error_msg) {
+                html += `<div class="task-error">错误: ${escapeHtml(item.error_msg)}</div>`;
+            }
+            html += `<div class="task-time">${formatTime(item.created_at)}</div>`;
+            html += `</div>`;
+            return html;
+        }
+
+        // 防XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 渲染列表
+        function renderList(containerId, items, emptyText, showSource) {
+            const container = document.getElementById(containerId);
+            if (!items || items.length === 0) {
+                container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+                return;
+            }
+            container.innerHTML = items.map(item => renderItem(item, showSource)).join('');
+        }
+
+        // 刷新队列
+        async function refreshQueue() {
+            try {
+                const resp = await fetch('/api/queue');
+                const data = await resp.json();
+                renderList('currentList', data.current, '暂无正在下载的任务', false);
+                renderList('waitingList', data.waiting, '队列为空', false);
+                renderList('historyList', data.history, '暂无历史记录', true);
+            } catch (err) {
+                console.error('刷新队列失败:', err);
+            }
+        }
+
+        // 初始化 + 自动刷新
+        refreshQueue();
+        setInterval(refreshQueue, 3000);
+    </script>
+</body>
+</html>

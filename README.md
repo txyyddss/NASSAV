@@ -14,27 +14,57 @@
 
 NASSAV 是一个基于 Python 开发的多源影视资源下载管理工具，支持从多个数据源自动下载、整理和刮削影视资源。
 
-项目采用模块化设计，支持自定义下载器，并提供了完整的元数据管理功能和配套服务。
+项目采用模块化设计，支持自定义下载器、WebUI 管理界面、Prowlarr 种子搜索兜底，并提供完整的元数据管理功能。
 
 ## 核心特性
 
-- 🎥 多源下载支持：支持 MissAV、Jable、HohoJ、Memo （持续添加中）等多个数据源
-- 📝 智能元数据管理：从JavBus自动获取影片信息、封面、海报等元数据
-- 🔄 队列管理：支持批量下载任务管理。使用sqlite去重，防止重复下载
-- 🌐 远程控制：提供 HTTP API 接口，支持远程控制下载任务
-- 🔒 文件锁机制：确保同一时间只有一个下载任务运行
-- 🎨 媒体服务器兼容：自动生成 NFO 文件，支持主流媒体服务器
+- 🎥 **多源下载**：支持 MissAV、Jable、HohoJ、Memo、KanAV 等多个数据源，权重优先级排序
+- 🌐 **WebUI 管理界面**：基于 Flask 的响应式网页，支持提交下载请求、队列管理和进度查看
+- 🔍 **Prowlarr 兜底**：所有爬虫源失败时，自动通过 Prowlarr 索引器搜索种子并使用 AI 选择最优资源
+- 🤖 **AI 选种**：集成 DeepSeek API，智能选择最佳种子（文件大小、做种人数、标题匹配度）
+- 📝 **智能元数据**：从 JavBus 自动获取影片信息、封面、海报等，生成 NFO 文件
+- 🔄 **队列管理**：SQLite 数据库驱动，支持去重、状态跟踪、历史记录
+- 🔒 **安全验证**：Cloudflare Turnstile 人机验证 + 服务端输入验证（防 XSS / SQL 注入）
+- 🎨 **媒体服务器兼容**：自动生成 Jellyfin/Emby 兼容的 NFO 和海报
 
-## Jellyfin预览
+## Jellyfin 预览
 
 ![](pic/1.png)
 
+## 系统架构
+
+```
+main.py                     # 入口：CLI模式 / WebUI模式
+├── src/
+│   ├── comm.py             # 配置加载 & 全局变量
+│   ├── data.py             # SQLite 已下载数据库
+│   ├── download_task.py    # 核心下载逻辑（可复用，支持进度回调）
+│   ├── queue_worker.py     # 后台队列工作线程
+│   ├── prowlarr.py         # Prowlarr API + DeepSeek AI 选种
+│   ├── scraper.py          # JavBus 元数据刮削器
+│   ├── downloaderMgr.py    # 下载器管理器
+│   ├── downloader/         # 各数据源下载器实现
+│   │   ├── downloaderBase.py
+│   │   ├── missAVDownloader.py
+│   │   ├── jableDownloder.py
+│   │   ├── hohoJDownloader.py
+│   │   ├── memoDownloader.py
+│   │   └── KanAVDownloader.py
+│   └── webui/              # WebUI 模块
+│       ├── app.py          # Flask 路由 & 验证
+│       ├── models.py       # 队列数据库模型
+│       ├── templates/      # HTML 模板
+│       └── static/         # CSS 样式
+├── cfg/configs.json        # 配置文件
+├── db/                     # 数据库文件
+└── tools/                  # 外部工具（ffmpeg, m3u8下载器）
+```
+
 ## 系统要求
 
-- **稳定的网络连接和代理服务**
-- Python 3.11.2 或更高版本
+- Python 3.11+
 - FFmpeg
-- Go 1.22.6 或更高版本（仅用于编译 HTTP 服务器）
+- 稳定的网络连接和代理服务
 
 ## 安装指南
 
@@ -47,25 +77,63 @@ pip3 install -r requirements.txt
 
 2. 安装 FFmpeg：
 ```bash
+# Linux
 sudo apt install ffmpeg
+# Windows：将 ffmpeg.exe 放入 tools/ 目录（已包含）
 ```
 
-3. 配置项目：
-   - 复制 `cfg/configs.json.example` 为 `cfg/configs.json`
-   - 修改配置文件中的关键参数：
-     - `SavePath`：设置视频保存路径
-     - `Proxy`：配置代理服务器地址（如果不需要使用代理，设置成""即可）
-     - `Downloader`：配置下载器及其优先级
-     - `IsNeedVideoProxy`：下载视频是否优先使用代理（最终都会尝试使用代理和不使用代理）
+3. 配置 `cfg/configs.json`（详见下方配置说明）
 
 ## 使用方法
 
-### 基本使用
+### WebUI 模式（推荐）
 
-0. 初始化，修改配置文件。主要关注的字段：
-    - SavePath：下载保存的位置
-    - Proxy：http代理服务器url（如果不需要使用代理，设置成""即可）
-    - IsNeedVideoProxy：下载视频是否使用代理
+启动 WebUI 管理界面：
+```bash
+python main.py --webui
+```
+
+访问 `http://localhost:5177`，在网页上提交番号即可自动下载。
+
+**功能**：
+- 输入番号提交下载请求（支持格式：`SONE-217`、`FC2-PPV-123456`）
+- 实时查看下载进度、等待队列、历史记录
+- Cloudflare Turnstile 人机验证（需配置 Site Key 和 Secret Key）
+- 自动去重检查（队列 + 已下载目录）
+
+### CLI 模式
+
+下载单个资源：
+```bash
+python main.py <车牌号>
+```
+
+强制下载（跳过已下载检查）：
+```bash
+python main.py <车牌号> -f
+```
+
+### 批量下载
+
+1. 将车牌号逐行添加到 `db/download_queue.txt`
+2. 设置定时任务：
+```bash
+20 * * * * cd /path/to/NASSAV && bash cron_task.sh
+```
+
+### Docker 下载
+
+```bash
+# 构建（首次）
+docker build -t nassav .
+# 运行
+docker run --rm -v "<本地存片位置>:<configs.json中SavePath>" nassav <车牌号>
+```
+
+## 配置说明
+
+编辑 `cfg/configs.json`：
+
 ```json
 {
     "LogPath": "./logs",
@@ -74,212 +142,127 @@ sudo apt install ffmpeg
     "QueuePath": "./db/download_queue.txt",
     "Proxy": "http://127.0.0.1:7897",
     "IsNeedVideoProxy": false,
+    "ScraperEnabled": true,
+    "ScraperDomain": ["www.javbus.com", "www.busdmm.ink"],
+    "Downloader": [...],
+    "WebUI": {
+        "Enabled": true,
+        "Port": 5177,
+        "TurnstileSiteKey": "你的Turnstile Site Key",
+        "TurnstileSecretKey": "你的Turnstile Secret Key"
+    },
+    "Prowlarr": {
+        "Enabled": true,
+        "URL": "http://localhost:9696",
+        "APIKey": "你的Prowlarr API Key",
+        "Timeout": 30
+    },
+    "DeepSeek": {
+        "APIKey": "你的DeepSeek API Key",
+        "Model": "deepseek-reasoner",
+        "BaseURL": "https://api.deepseek.com"
+    }
 }
 ```
 
-1. 如果本地已有资源，需要先整理目录结构，车牌号大写作为文件夹名字，视频同名放在文件夹里面：
+### 基础配置
 
-```
-...
-├── SVGAL-009
-│   └── SVGAL-009.mp4
-├── STCVS-007
-│   └── STCVS-007.mp4
-...
-```
-然后执行`python3 metadata.py`，爬取元数据。最后生成的目录结构：
-```
-...
-├── SVGAL-009
-│   ├── metadata.json
-│   ├── SVGAL-009-fanart.jpg
-│   ├── SVGAL-009.mp4
-│   ├── SVGAL-009.nfo
-│   └── SVGAL-009-poster.jpg
-├── thumb
-│   ├── JULIA.jpg
-│   ├── ちゃんよた.jpg
-│   ├── 七森莉莉.jpg
-│   ├── 七泽米亚.jpg
-...
-```
-
-2. 下载单个资源：
-```bash
-python3 main.py <车牌号>
-```
-
-3. 强制下载（忽略重复检查——下载过程中ctrl-c就会出现这种情况）：
-```bash
-python3 main.py <车牌号> -f
-```
-
-### 使用Docker下載
-
-0. 前置作業如基本使用
-
-1. Build Docker (初次使用才需要)
-```bash
-(sudo) docker build -t nassav .
-```
-
-2. 下載
-```bash
-(sudo) docker run --rm -v "<本機存片位置>:<cfg/configs.json存片位置>" nassav <車號>
-```
-
-### 批量下载
-
-1. 将车牌号添加到 `db/download_queue.txt` 中
-2. 设置定时任务：
-```bash
-20 * * * * cd /path/to/NASSAV && bash cron_task.sh
-```
-
-### HTTP API 服务
-
-1. 编译并启动 HTTP 服务器：
-```bash
-cd backend
-go build -o main
-./main
-```
-
-2. 发送下载请求：
-```bash
-curl -X POST http://127.0.0.1:49530/process -d "车牌号"
-```
-
-### 前后端服务
-
-刮削时下载了大量fanart，故提供一个网页预览。
-
-后端提供了两个API：
-1. 获取车牌号列表：/api/videos
-2. 获取车牌号详细信息：/api/videos/FPRE-017
-
-请求结果如下：
-```
-/api/videos
------------------------------
-[{"id":"ACHJ-057","title":"ACHJ-057 時には勝手に痴女りたい…。Madonna専属 究極美熟女『めぐり』お貸ししますー。","poster":"/file/ACHJ-057/ACHJ-057-poster.jpg"},{"id":"ADN-604","title":"ADN-604 お義父さんは私の事、どう思ってますか？ 七海ティナ","poster":"/file/ADN-604/ADN-604-poster.jpg"},{"id":"AGAV-122","title":"AGAV-122 顔で抜く！！顔面ドアップPOV 関西弁でイチャサド射精管理してくる年上彼女との同棲生活 流川莉央","poster":"/file/AGAV-122/AGAV-122-poster.jpg"},...]
-
-/api/videos/FPRE-017
------------------------------
-{"id":"FPRE-017","title":"FPRE-017 爆乳セレブ痴女に見つめられて犯●れたい 菊乃らん","releaseDate":"2024-02-02","fanarts":["/file/FPRE-017/FPRE-017-fanart-1.jpg","/file/FPRE-017/FPRE-017-fanart-10.jpg","/file/FPRE-017/FPRE-017-fanart-11.jpg","/file/FPRE-017/FPRE-017-fanart-12.jpg","/file/FPRE-017/FPRE-017-fanart-13.jpg","/file/FPRE-017/FPRE-017-fanart-14.jpg","/file/FPRE-017/FPRE-017-fanart-15.jpg","/file/FPRE-017/FPRE-017-fanart-16.jpg","/file/FPRE-017/FPRE-017-fanart-17.jpg","/file/FPRE-017/FPRE-017-fanart-18.jpg","/file/FPRE-017/FPRE-017-fanart-19.jpg","/file/FPRE-017/FPRE-017-fanart-2.jpg","/file/FPRE-017/FPRE-017-fanart-20.jpg","/file/FPRE-017/FPRE-017-fanart-21.jpg","/file/FPRE-017/FPRE-017-fanart-3.jpg","/file/FPRE-017/FPRE-017-fanart-4.jpg","/file/FPRE-017/FPRE-017-fanart-5.jpg","/file/FPRE-017/FPRE-017-fanart-6.jpg","/file/FPRE-017/FPRE-017-fanart-7.jpg","/file/FPRE-017/FPRE-017-fanart-8.jpg","/file/FPRE-017/FPRE-017-fanart-9.jpg","/file/FPRE-017/FPRE-017-fanart.jpg"],"videoFile":"/file/FPRE-017/FPRE-017.mp4"}
-```
-
-据此使用Vue实现一个前端，预览list和detail。
-
-list页：
-![](pic/gallery-list.png)
-detail页：
-![](pic/gallery-detail.png)
-
-前端部署方式：
-1. 先调整`frontend/src/api/videos.js`中后端的配置：
-```js
-import axios from 'axios'
-const API_BASE = 'http://192.168.31.61:31471' // 改成自己的ip
-```
-2. 重新生成静态文件到dist目录下：
-```bash
-cd frontend
-npm run build
-```
-3. 使用nginx部署静态网页：`127.0.0.1:5177`
-
-## 配置说明
+| 字段 | 说明 |
+|------|------|
+| `SavePath` | 视频保存路径 |
+| `Proxy` | HTTP 代理地址，留空不使用代理 |
+| `IsNeedVideoProxy` | 下载视频是否优先使用代理 |
+| `ScraperEnabled` | 是否启用元数据刮削（JavBus） |
 
 ### 下载器配置
 
-在 `configs.json` 中可以配置多个下载源及其优先级：
+| 字段 | 说明 |
+|------|------|
+| `downloaderName` | 下载器名称 |
+| `domain` | 数据源域名 |
+| `weight` | 权重，值越大优先级越高，设为 0 禁用 |
 
-```json
-"Downloader": [
-    {
-        "downloaderName": "MissAV",
-        "domain": "missav.ai",
-        "weight": 300
-    },
-    {
-        "downloaderName": "Jable",
-        "domain": "jable.tv",
-        "weight": 500
-    },
-    {
-        "downloaderName": "HohoJ",
-        "domain": "hohoj.tv",
-        "weight": 0
-    }
-]
+### WebUI 配置
+
+| 字段 | 说明 |
+|------|------|
+| `Enabled` | 是否启用 WebUI |
+| `Port` | WebUI 端口（默认 5177） |
+| `TurnstileSiteKey` | Cloudflare Turnstile Site Key（留空跳过验证） |
+| `TurnstileSecretKey` | Cloudflare Turnstile Secret Key |
+
+### Prowlarr 配置
+
+| 字段 | 说明 |
+|------|------|
+| `Enabled` | 是否启用 Prowlarr 兜底搜索 |
+| `URL` | Prowlarr 服务地址 |
+| `APIKey` | Prowlarr API Key |
+| `Timeout` | 搜索超时时间（秒） |
+
+### DeepSeek 配置
+
+| 字段 | 说明 |
+|------|------|
+| `APIKey` | DeepSeek API Key（留空使用备选策略：按文件大小+做种数排序） |
+| `Model` | 使用的模型（默认 `deepseek-reasoner`） |
+| `BaseURL` | API 基础 URL |
+
+## 数据源说明
+
+| 数据源 | 优点 | 缺点 |
+|--------|------|------|
+| **MissAV** | 资源全面，反爬限制较少 | 清晰度一般（720p-1080p） |
+| **Jable** | 中文字幕多，清晰度高（1080p） | 反爬限制较严格 |
+| **HohoJ** | 清晰度高（1080p），基本无反爬 | 中文字幕资源较少 |
+| **Memo** | 资源较新，更新及时 | 部分资源需要会员 |
+| **Prowlarr** | 种子资源兜底，自动AI选种 | 需要额外部署 Prowlarr 服务 |
+
+## 下载流程
+
 ```
-
-### 数据源说明
-
-1. **MissAV**
-   - 优点：资源全面，反爬限制较少
-   - 缺点：清晰度一般（720p-1080p）
-
-2. **Jable**
-   - 优点：中文字幕资源多，清晰度高（1080p）
-   - 缺点：反爬限制较严格
-
-3. **HohoJ**
-   - 优点：清晰度高（1080p），基本无反爬限制
-   - 缺点：中文字幕资源较少
-
-4. **Memo**
-   - 优点：资源较新，更新及时
-   - 缺点：部分资源需要会员
-
+提交番号 → 遍历配置的下载器（按权重降序）
+  ├── 下载成功 → 元数据刮削（可选）→ 完成
+  └── 全部失败 → Prowlarr兜底（可选）
+       ├── 搜索种子 → AI选择最佳 → 添加下载 → 成功
+       └── 搜索失败 → 加入重试队列
+```
 
 ## 开发指南
 
 ### 添加新的下载器
 
-1. 在 `src/downloader/` 目录下创建新的下载器类
-2. 继承 `Downloader` 基类，实现必要的方法：
-   - `getDownloaderName()`
-   - `getHTML()`
-   - `parseHTML()`
-3. 在 `DownloaderMgr` 中注册新下载器
-4. 在配置文件中添加相应的配置项
+1. 在 `src/downloader/` 下创建新文件
+2. 继承 `Downloader` 基类，实现 `getDownloaderName()`、`getHTML()`、`parseHTML()`
+3. 在 `DownloaderMgr.__init__` 中注册
+4. 在 `configs.json` 的 `Downloader` 数组中添加配置
 
-示例代码：
 ```python
 class NewDownloader(Downloader):
     def getDownloaderName(self) -> str:
         return "NewDownloader"
 
     def getHTML(self, avid: str) -> Optional[str]:
-        # 实现获取HTML的逻辑
+        # 获取HTML
         pass
 
     def parseHTML(self, html: str) -> Optional[AVDownloadInfo]:
-        # 实现解析HTML的逻辑
+        # 解析出m3u8链接
         pass
 ```
-### 有需求请自行fork修改，如果想要贡献代码发起PR即可
-
-![](pic/IMG_5150.JPG)
 
 ## 注意事项
 
 - 使用本项目需要稳定的代理服务
 - 请遵守相关法律法规，合理使用本工具
 - 建议定期备份数据库文件
-- 下载过程中请确保网络稳定
-- 下载频率不要过高。否则会被cloudflare安排进贤者时间
+- 下载频率不要过高，避免触发 Cloudflare 防护
 
 ## Reference
 
-前人栽树，后人乘凉
-
-1. m3u8-Downloader-Go（m3u8命令行下载器）: https://github.com/Greyh4t/m3u8-Downloader-Go
-2. mrjet（如何获取到missav的m3u8）: https://github.com/cailurus/mrjet
-
+1. m3u8-Downloader-Go: https://github.com/Greyh4t/m3u8-Downloader-Go
+2. mrjet: https://github.com/cailurus/mrjet
 
 ## 许可证
 
-本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。 
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。

@@ -38,9 +38,9 @@ class KanAVDownloader(Downloader):
         match = re.search(r'"url":"([A-Za-z0-9]*)"', html)
         if match:
             encoded_url = match.group(1)
-            logger.debug("URL before decode:", encoded_url)
+            logger.debug(f"URL before decode: {encoded_url}")
             final_url = unquote(base64.b64decode(encoded_url).decode('utf-8'))
-            logger.debug("URL after decode:", final_url)
+            logger.debug(f"URL after decode: {final_url}")
             downloadInfo.m3u8 = final_url
             logger.info(downloadInfo.m3u8)
         else:

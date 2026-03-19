@@ -1,10 +1,11 @@
 {
     "LogPath": "./logs",
-    "SavePath": "/vol2/1000/MissAV",
+    "SavePath": "/media/avauto",
     "DBPath": "./db/downloaded.db",
     "QueuePath": "./db/download_queue.txt",
-    "Proxy": "http://127.0.0.1:7897",
-    "IsNeedVideoProxy": true,
+    "Proxy": "",
+    "IsNeedVideoProxy": false,
+    "ScraperEnabled": true,
     "ScraperDomain": [
         "www.javbus.com",
         "www.busdmm.ink",
@@ -51,5 +52,22 @@
             "domain": "f15.bzraizy.cc",
             "weight": 0
         }
-    ]
+    ],
+    "WebUI": {
+        "Enabled": true,
+        "Port": 5177,
+        "TurnstileSiteKey": "",
+        "TurnstileSecretKey": ""
+    },
+    "Prowlarr": {
+        "Enabled": true,
+        "URL": "http://localhost:9696",
+        "APIKey": "18dc49893ca540a8900c9c9194a71962",
+        "Timeout": 30
+    },
+    "DeepSeek": {
+        "APIKey": "sk-411404f9fc114819acba97a0b5626eb9",
+        "Model": "deepseek-reasoner",
+        "BaseURL": "https://api.deepseek.com"
+    }
 }

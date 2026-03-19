@@ -47,6 +47,26 @@ logger.info(f"missav domain: {missAVDomain}")
 scraperDomain = random.choice(configs["ScraperDomain"])
 logger.info(f"scraper domain: {scraperDomain}")
 
+# 新功能配置（向后兼容，缺失字段使用默认值）
+scraper_enabled = configs.get("ScraperEnabled", True)
+
+webui_config = configs.get("WebUI", {})
+webui_config.setdefault("Enabled", False)
+webui_config.setdefault("Port", 5177)
+webui_config.setdefault("TurnstileSiteKey", "")
+webui_config.setdefault("TurnstileSecretKey", "")
+
+prowlarr_config = configs.get("Prowlarr", {})
+prowlarr_config.setdefault("Enabled", False)
+prowlarr_config.setdefault("URL", "http://localhost:9696")
+prowlarr_config.setdefault("APIKey", "")
+prowlarr_config.setdefault("Timeout", 30)
+
+deepseek_config = configs.get("DeepSeek", {})
+deepseek_config.setdefault("APIKey", "")
+deepseek_config.setdefault("Model", "deepseek-reasoner")
+deepseek_config.setdefault("BaseURL", "https://api.deepseek.com")
+
 
 # 初始化下载器
 download_tool = f"'{project_root}/tools/m3u8-Downloader-Go'"

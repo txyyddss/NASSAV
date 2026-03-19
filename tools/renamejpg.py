@@ -15,6 +15,8 @@ def rename_jpg_files_with_prefix(root_dir):
             # 遍历文件夹内的文件
             for file in folder.iterdir():
                 if file.suffix.lower() == '.jpg':
+                    if file.name.startswith(f"{prefix}-"):
+                        continue
                     # 构造新文件名，符合jellyfin命名规则
                     new_name = f"{prefix}-{file.name}"
                     new_path = file.with_name(new_name)

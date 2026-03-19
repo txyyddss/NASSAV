@@ -32,8 +32,8 @@ class AVMetadata:
     description: str = ""
     duration: str = ""
     release_date: str = ""
-    keywords = [],
-    fanarts = []
+    keywords: list = field(default_factory=list)
+    fanarts: list = field(default_factory=list)
 
     def __str__(self):
         # 格式化演员信息
@@ -101,7 +101,7 @@ class Sracper:
         # 获取html
         url= f"https://{self.domain}/{avid.upper()}"
         logger.info(url)
-        html = self._fetch_html(url, referer="self.domain")
+        html = self._fetch_html(url, referer=f"https://{self.domain}")
         if html is None:
             return None
         logger.info("fetch html succ")
@@ -226,7 +226,7 @@ class Sracper:
                 logger.info(f"av {av} already exist")
                 continue
             else:
-                self._download_file(url, os.path.join(self.path, "thumb/"+av+".jpg"), referer=f"https://{self.domain}/{metadata.avid}")
+                self._download_file(url, f"thumb/{av}.jpg", referer=f"https://{self.domain}/{metadata.avid}")
         return True
 
     def genNFO(self, metadata: AVMetadata) -> bool:
@@ -284,7 +284,7 @@ class Sracper:
         """通用下载方法，下载到指定位置"""
         logger.debug(f"download {url} to {os.path.join(self.path, filename)}")
         try:
-            newHeader = headers
+            newHeader = headers.copy()
             if referer:
                 newHeader["Referer"] = referer
             response = requests.get(url, stream=True, impersonate="chrome110", proxies=self.proxies,\
@@ -302,7 +302,7 @@ class Sracper:
     
     def _fetch_html(self, url: str, referer: str = "") -> Optional[str]:
         try:
-            newHeader = headers
+            newHeader = headers.copy()
             if referer:
                 newHeader["Referer"] = referer
             response = requests.get(
